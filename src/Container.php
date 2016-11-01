@@ -82,6 +82,15 @@ class Container implements ContainerInterface
      */
     protected $registry;
     
+    /**
+     * Constructor
+     *
+     * Optionally set a parent container and an array of child containers
+     *
+     * @param  ContainerInterface   $parent   A parent container.
+     * @param  ContainerInterface[] $children Child container(s).
+     * @return void
+     */
     public function __construct($parent = null, $children = [])
     {
         if (isset($parent)) {
@@ -92,17 +101,45 @@ class Container implements ContainerInterface
         }
     }
     
+    /**
+     * Add a child container
+     *
+     * @param  ContainerInterface $child
+     * @return void
+     */
     public function addChild(ContainerInterface $child)
     {
         $this->children[] = $child;
     }
     
-    public function define(string $id, $classOrCallable, array $params = [], bool $register = false): bool
-    {
-        if (is_string($classOrCallable)) {
-            $method = $this->makeFactory($classOrCallable);
-        } elseif (is_callable($classOrCallable)) {
-            $method = $classOrCallable;
+    /**
+     * Define an entry
+     *
+     * @param  string                    $id             Identifier of the 
+     *                                                   entry.
+     * @param  ContainerInterface|string $nameOrCallable A valid class name or
+     *                                                   a callable which
+     *                                                   returns the entity
+     *                                                   when passed ...$params.
+     * @param  array                     $params         An array of parameters
+     *                                                   for entry instantiation.
+     * @param  bool                      $register       Whether the instance,
+     *                                                   once created, should 
+     *                                                   be registered.
+     * @throws InvalidArgumentException                  $nameOrCallable is not
+     *                                                   a string or callable.
+     * @return bool
+     */
+    public function define(
+        string $id,
+        $nameOrCallable,
+        array $params = [],
+        bool $register = false
+    ): bool {
+        if (is_string($nameOrCallable)) {
+            $method = $this->makeFactory($nameOrCallable);
+        } elseif (is_callable($nameOrCallable)) {
+            $method = $nameOrCallable;
         } else {
             $msg = 'Paramter must be a string or callable';
             throw new InvalidArgumentException($msg);
@@ -192,6 +229,12 @@ class Container implements ContainerInterface
         return $return;
     }
     
+    /**
+     * Set an array of child containers
+     *
+     * @param  ContainerInterface[] $children
+     * @return void
+     */
     public function setChildren(array $children)
     {
         $this->children = [];
@@ -200,11 +243,23 @@ class Container implements ContainerInterface
         }
     }
     
+    /**
+     * Set a parent container
+     *
+     * @param  ContainerInterface $parent
+     * @return void
+     */
     public function setParent(ContainerInterface $parent)
     {
         $this->parent = $parent;
     }
     
+    /**
+     * Instantiate antry from its definition
+     *
+     * @param  string $id Identifier of the entry to instantiate.
+     * @return object
+     */
     protected function instantiate(string $id)
     {
         $factory = $this->definitions[$id]['method'];
@@ -219,13 +274,32 @@ class Container implements ContainerInterface
         return $return;
     }
     
-    protected function makeFactory(string $className)
+    /**
+     * Make a callable which returns an instance of the given class, optionally
+     * accepting an arbitary number of paramters.
+     *
+     * @param  string   $className The name of the class the factory produces.
+     * @return callable
+     */
+    protected function makeFactory(string $className): callable
     {
         return function (...$params) use ($className) {
             return new $className(...$params);
         };
     }
     
+    /**
+     * Resolve the given paramter as a dependency, if possible
+     *
+     * Strings beginning with ':' are taken as an identifier to resolve. Arrays
+     * are recursively passed through this method to resolve any identifier 
+     * strings they contain.
+     *
+     * Other types are returned without attempting to resolve them.
+     *
+     * @param  mixed $param
+     * @return mixed
+     */
     protected function resolveParam($param)
     {
         $return = $param;
