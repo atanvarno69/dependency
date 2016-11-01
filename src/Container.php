@@ -55,6 +55,20 @@ use TypeError;
 class Container implements ContainerInterface
 {
     /**
+     * Array of object definitions
+     *
+     * @var array $definitions
+     */
+    protected $definitions;
+    
+    /**
+     * Array of registered instances
+     *
+     * @var array $registry
+     */
+    protected $registry;
+    
+    /**
      * Finds an entry of the container by its identifier and returns it
      *
      * @param  string             $id Identifier of the entry to look for.
@@ -90,5 +104,6 @@ class Container implements ContainerInterface
             $msg = 'Parameter must be a string';
             throw new TypeError($msg);
         }
+        return isset($this->registry[$id]) || isset($this->definitions[$id]);
     }
 }
