@@ -45,7 +45,7 @@ use Interop\Container\ContainerInterface;
 /**
  * Error & exception use block
  */
-use InvalidArgumentException, TypeError;
+use InvalidArgumentException, Throwable, TypeError;
 
 /**
  * Container class
@@ -162,7 +162,7 @@ class Container implements ContainerInterface
      * @throws TypeError              $id is not a string.
      * @throws NotFoundException      No entry was found for this identifier.
      * @throws ContainerException     Error while retrieving the entry.
-     * @return mixed                  Entry.
+     * @return mixed
      */
     public function get($id)
     {
@@ -170,16 +170,25 @@ class Container implements ContainerInterface
             $msg = 'Parameter must be a string';
             throw new TypeError($msg);
         }
-        if ($this->has($id)) {
-            $return = $this->registry[$id] ?? $this->instantiate($id);
-        } elseif (!empty($this->children)) {
-            foreach ($children as $child) {
-                if ($child->has($id)) {
-                    $return = $child->get($id);
-                    break;
+        try {
+            if ($this->has($id)) {
+                $return = $this->registry[$id] ?? $this->instantiate($id);
+            } elseif (!empty($this->children)) {
+                foreach ($children as $child) {
+                    if ($child->has($id)) {
+                        $return = $child->get($id);
+                        break;
+                    }
                 }
-            }
-        } 
+            } 
+        } catch (Throwable $t) {
+            $msg = class_name($t)
+                 . ' caught resolving entry '
+                 . $id
+                 . 'with message: '
+                 . $t->getMessage();
+            throw new ContainerException($msg, $t->getCode(), $t);
+        }
         if (!isset($return)) {
             $msg = $id . ' not found';
             throw new NotFoundException($msg);
@@ -297,7 +306,8 @@ class Container implements ContainerInterface
      *
      * Other types are returned without attempting to resolve them.
      *
-     * @param  mixed $param
+     * @param  mixed              $param
+     * @throws ContainerException        Error resolving dependency.
      * @return mixed
      */
     protected function resolveParam($param)
@@ -311,10 +321,17 @@ class Container implements ContainerInterface
         } elseif (is_string($param)) {
             if (strpos($param, ':') === 0) {
                 $id = substr($param, 1);
-                if (isset($this->parent)) {
-                    $return = $this->parent->get($id);
-                } else {
-                    $return = $this->get($id);
+                try {
+                    if (isset($this->parent)) {
+                        $return = $this->parent->get($id);
+                    } else {
+                        $return = $this->get($id);
+                    }
+                } catch (Throwable $t) {
+                    $msg = class_name($t)
+                         . ' caught resolving dependnecy with message: '
+                         . $t->getMessage();
+                    throw new ContainerException($msg, $t->getCode(), $t);
                 }
             }
         }
