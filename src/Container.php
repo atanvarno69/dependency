@@ -45,7 +45,7 @@ use Interop\Container\ContainerInterface;
 /**
  * Error & exception use block
  */
-use TypeError;
+use InvalidArgumentException, TypeError;
 
 /**
  * Container class
@@ -55,18 +55,68 @@ use TypeError;
 class Container implements ContainerInterface
 {
     /**
+     * The child containers
+     *
+     * @var ContainerInterface[]
+     */
+    protected $children;
+    
+    /**
      * Array of object definitions
      *
-     * @var array $definitions
+     * @var array[] $definitions
      */
     protected $definitions;
     
     /**
+     * The parent container
+     *
+     * @var ContainerInterface $parent
+     */
+    protected $parent;
+    
+    /**
      * Array of registered instances
      *
-     * @var array $registry
+     * @var object[] $registry
      */
     protected $registry;
+    
+    public function __construct($parent = null, $children = [])
+    {
+        if (isset($parent)) {
+            $this->setParent($parent);
+        }
+        if (!empty($children)) {
+            $this->setChildren($children);
+        }
+    }
+    
+    public function addChild(ContainerInterface $child)
+    {
+        $this->children[] = $child;
+    }
+    
+    public function define(string $id, $classOrCallable, array $params = [], bool $register = false): bool
+    {
+        if (is_string($classOrCallable)) {
+            $method = $this->makeFactory($classOrCallable);
+        } elseif (is_callable($classOrCallable)) {
+            $method = $classOrCallable;
+        } else {
+            $msg = 'Paramter must be a string or callable';
+            throw new InvalidArgumentException($msg);
+        }
+        $return = !isset($this->definitions[$id]);
+        if ($return) {
+            $this->definitions[$id] = [
+                'method'   => $method,
+                'params'   => $params,
+                'register' => $register,
+            ];
+        }
+        return $return;
+    }
     
     /**
      * Return a container entry from its identifier
@@ -83,10 +133,21 @@ class Container implements ContainerInterface
             $msg = 'Parameter must be a string';
             throw new TypeError($msg);
         }
-        if (!$this->has()) {
+        if ($this->has($id)) {
+            $return = $this->registry[$id] ?? $this->instantiate($id);
+        } elseif (!empty($this->children)) {
+            foreach ($children as $child) {
+                if ($child->has($id)) {
+                    $return = $child->get($id);
+                    break;
+                }
+            }
+        } 
+        if (!isset($return)) {
             $msg = $id . ' not found';
             throw new NotFoundException($msg);
         }
+        return $return;
     }
     
     /**
@@ -108,5 +169,81 @@ class Container implements ContainerInterface
             throw new TypeError($msg);
         }
         return isset($this->registry[$id]) || isset($this->definitions[$id]);
+    }
+    
+    /**
+     * Register an object with the container
+     *
+     * @param  string                   $id    Identifier of the entry to add.
+     * @param  object                   $entry Entry to add.
+     * @throws InvalidArgumentException        $entry is not an object.
+     * @return bool
+     */
+    public function register(string $id, $entry): bool
+    {
+        if (!is_object($entry)) {
+            $msg = 'Paramter must be an object';
+            throw new InvalidArgumentException($msg);
+        }
+        $return = !isset($this->registry[$id]);
+        if ($return) {
+            $this->registry[$id] = $entry;
+        }
+        return $return;
+    }
+    
+    public function setChildren(array $children)
+    {
+        $this->children = [];
+        foreach ($children as $child) {
+            $this->addChild($child);
+        }
+    }
+    
+    public function setParent(ContainerInterface $parent)
+    {
+        $this->parent = $parent;
+    }
+    
+    protected function instantiate(string $id)
+    {
+        $factory = $this->definitions[$id]['method'];
+        $params = [];
+        foreach ($this->definitions[$id]['params'] as $param) {
+            $params[] = $this->resolveParam($param);
+        }
+        $return = $factory(...$params);
+        if ($this->definitions[$id]['register']) {
+            $this->register($id, $return);
+        }
+        return $return;
+    }
+    
+    protected function makeFactory(string $className)
+    {
+        return function (...$params) use ($className) {
+            return new $className(...$params);
+        };
+    }
+    
+    protected function resolveParam($param)
+    {
+        $return = $param;
+        if (is_array($param)) {
+            $return = [];
+            foreach ($param as $key => $item) {
+                $return[$key] = $this->resolveParam($item);
+            }
+        } elseif (is_string($param)) {
+            if (strpos($param, ':') === 0) {
+                $id = substr($param, 1);
+                if (isset($this->parent)) {
+                    $return = $this->parent->get($id);
+                } else {
+                    $return = $this->get($id);
+                }
+            }
+        }
+        return $return;
     }
 }
