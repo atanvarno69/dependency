@@ -37,8 +37,15 @@ use Exception\{
 
 /**
  * Container interop use block
+ *
+ * @todo Update to PSR namespace when PSR-11 available
  */
 use Interop\Container\ContainerInterface;
+
+/**
+ * Error & exception use block
+ */
+use TypeError;
 
 /**
  * Container class
@@ -48,16 +55,24 @@ use Interop\Container\ContainerInterface;
 class Container implements ContainerInterface
 {
     /**
-     * Finds an entry of the container by its identifier and returns it.
+     * Finds an entry of the container by its identifier and returns it
      *
-     * @param string $id Identifier of the entry to look for.
-     *
-     * @throws NotFoundException  No entry was found for this identifier.
-     * @throws ContainerException Error while retrieving the entry.
-     *
-     * @return mixed Entry.
+     * @param  string             $id Identifier of the entry to look for.
+     * @throws NotFoundException      No entry was found for this identifier.
+     * @throws ContainerException     Error while retrieving the entry.
+     * @return mixed                  Entry.
      */
-    public function get($id);
+    public function get($id)
+    {
+        if (!is_string($id)) {
+            $msg = 'Parameter must be a string';
+            throw new TypeError($msg);
+        }
+        if (!$this->has()) {
+            $msg = $id . ' not found';
+            throw new NotFoundException($msg);
+        }
+    }
     
     /**
      * Returns true if the container can return an entry for the given identifier.
@@ -66,9 +81,14 @@ class Container implements ContainerInterface
      * `has($id)` returning true does not mean that `get($id)` will not throw an exception.
      * It does however mean that `get($id)` will not throw a `NotFoundException`.
      *
-     * @param string $id Identifier of the entry to look for.
-     *
-     * @return boolean
+     * @param  string $id Identifier of the entry to look for.
+     * @return bool
      */
-    public function has($id);
+    public function has($id)
+    {
+        if (!is_string($id)) {
+            $msg = 'Parameter must be a string';
+            throw new TypeError($msg);
+        }
+    }
 }
