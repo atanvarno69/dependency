@@ -338,7 +338,7 @@ class Container implements ContainerInterface
                     $msg = class_name($t)
                          . ' caught resolving dependnecy '
                          . $id
-                         . 'with message: '
+                         . ' with message: '
                          . $t->getMessage();
                     throw new ContainerException($msg, $t->getCode(), $t);
                 }
