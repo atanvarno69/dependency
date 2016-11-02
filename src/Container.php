@@ -276,7 +276,7 @@ class Container implements ContainerInterface
         foreach ($this->definitions[$id]['params'] as $param) {
             $params[] = $this->resolveParam($param);
         }
-        $return = $factory(...$params);
+        $return = call_user_func($factory, ...$params);
         if ($this->definitions[$id]['register']) {
             $this->register($id, $return);
         }
@@ -287,11 +287,18 @@ class Container implements ContainerInterface
      * Make a callable which returns an instance of the given class, optionally
      * accepting an arbitary number of paramters.
      *
-     * @param  string   $className The name of the class the factory produces.
+     * @param  string                   $className The name of the class the
+     *                                             factory will produce.
+     * @throws InvalidArgumentException            $className is not a valid
+     *                                             class name.
      * @return callable
      */
     protected function makeFactory(string $className): callable
     {
+        if (!class_exists($className)) {
+            $msg = $className . ' is not a valid class name';
+            throw new InvalidArgumentException($msg);
+        }
         return function (...$params) use ($className) {
             return new $className(...$params);
         };
