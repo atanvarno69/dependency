@@ -36,6 +36,14 @@ use Exception\{
 };
 
 /**
+ * PSR-3 use block
+ */
+use Psr\Log\{
+    LoggerAwareInterface,
+    LoggerInterface
+}
+
+/**
  * Container interop use block
  *
  * @todo Update to PSR namespace when PSR-11 available
@@ -52,7 +60,7 @@ use InvalidArgumentException, Throwable, TypeError;
  *
  * Basic dependency injector.
  */
-class Container implements ContainerInterface
+class Container implements ContainerInterface, LoggerAwareInterface
 {
     /**
      * The child containers
@@ -67,6 +75,13 @@ class Container implements ContainerInterface
      * @var array[] $definitions
      */
     protected $definitions;
+    
+    /**
+     * The logger
+     *
+     * @var LoggerInterface $logger
+     */
+    protected $logger;
     
     /**
      * The parent container
@@ -85,19 +100,27 @@ class Container implements ContainerInterface
     /**
      * Constructor
      *
-     * Optionally set a parent container and an array of child containers
+     * Optionally set a parent container, an array of child containers and a
+     * PSR-3 logger.
      *
      * @param  ContainerInterface   $parent   A parent container.
      * @param  ContainerInterface[] $children Child container(s).
+     * @param  LoggerInterface      $logger   A PSR-3 logger.
      * @return void
      */
-    public function __construct($parent = null, $children = [])
-    {
+    public function __construct(
+        $parent = null,
+        $children = [],
+        LoggerInterface $logger = null
+    ) {
         if (isset($parent)) {
             $this->setParent($parent);
         }
         if (!empty($children)) {
             $this->setChildren($children);
+        }
+        if (isset($logger)) {
+            $this->setLogger($logger);
         }
     }
     
@@ -187,11 +210,25 @@ class Container implements ContainerInterface
                  . $id
                  . 'with message: '
                  . $t->getMessage();
-            throw new ContainerException($msg, $t->getCode(), $t);
+            $exception =  new ContainerException($msg, $t->getCode(), $t);
+            if (isset($this->logger)) {
+                $this->logger->critical(
+                    'Atan\Dependnecy unable to resolve ' . $id,
+                    ['exception' => $exception]
+                );
+            }
+            throw $exception;
         }
         if (!isset($return)) {
             $msg = $id . ' not found';
-            throw new NotFoundException($msg);
+            $exception = new NotFoundException($msg);
+            if (isset($this->logger)) {
+                $this->logger->error(
+                    'Atan\Dependnecy could not find ' . $id,
+                    ['exception' => $exception]
+                );
+            }
+            throw $exception;
         }
         return $return;
     }
@@ -250,6 +287,17 @@ class Container implements ContainerInterface
         foreach ($children as $child) {
             $this->addChild($child);
         }
+    }
+    
+    /**
+     * LoggerAware implementation
+     *
+     * @param  LoggerInterface $logger
+     * @return void
+     */
+    public function setLogger(LoggerInterface $logger)
+    {
+        $this->logger = $logger;
     }
     
     /**
