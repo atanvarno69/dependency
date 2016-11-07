@@ -205,29 +205,27 @@ class Container implements ContainerInterface, LoggerAwareInterface
                 }
             } 
         } catch (Throwable $t) {
-            $msg = class_name($t)
+            $msg = get_class($t)
                  . ' caught resolving entry '
                  . $id
                  . 'with message: '
                  . $t->getMessage();
             $exception =  new ContainerException($msg, $t->getCode(), $t);
-            if (isset($this->logger)) {
-                $this->logger->critical(
-                    'Atan\Dependnecy unable to resolve ' . $id,
-                    ['exception' => $exception]
-                );
-            }
+            $this->log(
+                LogLevel::CRITICAL,
+                'Atan\Dependnecy unable to resolve ' . $id,
+                ['exception' => $exception]
+            );
             throw $exception;
         }
         if (!isset($return)) {
             $msg = $id . ' not found';
             $exception = new NotFoundException($msg);
-            if (isset($this->logger)) {
-                $this->logger->error(
-                    'Atan\Dependnecy could not find ' . $id,
-                    ['exception' => $exception]
-                );
-            }
+            $this->log(
+                LogLevel::ERROR,
+                'Atan\Dependnecy could not find ' . $id,
+                ['exception' => $exception]
+            );
             throw $exception;
         }
         return $return;
@@ -329,6 +327,21 @@ class Container implements ContainerInterface, LoggerAwareInterface
             $this->register($id, $return);
         }
         return $return;
+    }
+ 
+    /**
+     * Log to a PSR-3 logger, if available
+     *
+     * @param  string $level   Use constants provided by LogLevel
+     * @param  string $message
+     * @param  array  $context
+     * @return void
+     */
+    protected function log(string $level, string $message, array $context = [])
+    {
+        if (isset($this->logger)) {
+            $this->logger->log($level, $message, $context);
+        }
     }
     
     /**
