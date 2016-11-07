@@ -40,7 +40,8 @@ use Exception\{
  */
 use Psr\Log\{
     LoggerAwareInterface,
-    LoggerInterface
+    LoggerInterface,
+    LogLevel
 }
 
 /**
