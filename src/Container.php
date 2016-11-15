@@ -110,7 +110,7 @@ class Container implements ContainerInterface, LoggerAwareInterface
      * @return void
      */
     public function __construct(
-        $parent = null,
+        ContainerInterface $parent = null,
         $children = [],
         LoggerInterface $logger = null
     ) {
@@ -118,6 +118,7 @@ class Container implements ContainerInterface, LoggerAwareInterface
             $this->setParent($parent);
         }
         if (!empty($children)) {
+            // @todo check array entries are ContainerInterface
             $this->setChildren($children);
         }
         if (isset($logger)) {
