@@ -111,14 +111,13 @@ class Container implements ContainerInterface, LoggerAwareInterface
      */
     public function __construct(
         ContainerInterface $parent = null,
-        $children = [],
+        array $children = [],
         LoggerInterface $logger = null
     ) {
         if (isset($parent)) {
             $this->setParent($parent);
         }
         if (!empty($children)) {
-            // @todo check array entries are ContainerInterface
             $this->setChildren($children);
         }
         if (isset($logger)) {
