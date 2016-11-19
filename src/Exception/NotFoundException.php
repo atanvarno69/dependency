@@ -27,20 +27,20 @@
  
 namespace Atan\Dependency\Exception;
 
-/**
- * Package use block
- */
+/** Package use block */
 use ContainerException;
 
 /**
- * Container interop use block
+ * PSR-11 Container Interface use block
+ *
+ * @todo Update to `Psr` namespace when PSR-11 available
  */
 use Interop\Container\Exception\NotFoundException as NotFoundExceptionInterface;
 
-/**
- * ContainerException class
- */
-class NotFoundException extends ContainerException implements NotFoundExceptionInterface
+/** NotFoundException class */
+class NotFoundException
+    extends ContainerException
+    implements NotFoundExceptionInterface
 {
     
 }

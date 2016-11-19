@@ -28,19 +28,19 @@
 namespace Atan\Dependency\Exception;
 
 /**
- * Container interop use block
+ * PSR-11 Container Interface use block
+ *
+ * @todo Update to `Psr` namespace when PSR-11 available
  */
 use Interop\Container\Exception\ContainerException as ContainerExceptionInterface;
 
-/**
- * Exception use block
- */
+/** SPL use block */
 use Exception;
 
-/**
- * ContainerException class
- */
-class ContainerException extends Exception implements ContainerExceptionInterface
+/** ContainerException class */
+class ContainerException
+    extends Exception 
+    implements ContainerExceptionInterface
 {
     
 }

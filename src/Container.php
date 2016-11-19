@@ -1,6 +1,6 @@
 <?php
 /**
- * Container class
+ * Container class file
  * 
  * Copyright © 2016 atanvarno.com
  *
@@ -27,76 +27,46 @@
  
 namespace Atan\Dependency;
 
-/**
- * Package use block
- */
+/** Package use block */
 use Exception\{
     ContainerException,
     NotFoundException
 };
 
-/**
- * PSR-3 use block
- */
+/** PSR-3 Logger Interface use block */
 use Psr\Log\{
     LoggerAwareInterface,
     LoggerInterface,
     LogLevel
-}
+};
 
 /**
- * Container interop use block
+ * PSR-11 Container Interface use block
  *
- * @todo Update to PSR namespace when PSR-11 available
+ * @todo Update to `Psr` namespace when PSR-11 available
  */
 use Interop\Container\ContainerInterface;
 
-/**
- * Error & exception use block
- */
-use InvalidArgumentException, Throwable, TypeError;
+/** SPL use block */
+use InvalidArgumentException, Throwable;
 
 /**
  * Container class
  *
- * Basic dependency injector.
+ * Basic PSR-11 dependency injection container.
  */
 class Container implements ContainerInterface, LoggerAwareInterface
 {
     /**
-     * The child containers
+     * Class properties
      *
-     * @var ContainerInterface[]
+     * @var ContainerInterface[] $children    Child containers
+     * @var array[]              $definitions Entity definitions
+     * @var LoggerInterface      $logger      PSR-3 logger
+     * @var ContainerInterface   $parent      Parent container
+     * @var object[]             $registry    Registered objects
      */
-    protected $children;
-    
-    /**
-     * Array of object definitions
-     *
-     * @var array[] $definitions
-     */
-    protected $definitions;
-    
-    /**
-     * The logger
-     *
-     * @var LoggerInterface $logger
-     */
-    protected $logger;
-    
-    /**
-     * The parent container
-     *
-     * @var ContainerInterface $parent
-     */
-    protected $parent;
-    
-    /**
-     * Array of registered instances
-     *
-     * @var object[] $registry
-     */
-    protected $registry;
+    protected $children, $definitions, $logger, $parent, $registry;
     
     /**
      * Constructor
@@ -104,10 +74,9 @@ class Container implements ContainerInterface, LoggerAwareInterface
      * Optionally set a parent container, an array of child containers and a
      * PSR-3 logger.
      *
-     * @param  ContainerInterface   $parent   A parent container.
-     * @param  ContainerInterface[] $children Child container(s).
-     * @param  LoggerInterface      $logger   A PSR-3 logger.
-     * @return void
+     * @param  ContainerInterface   $parent   Parent container
+     * @param  ContainerInterface[] $children Child container(s)
+     * @param  LoggerInterface      $logger   PSR-3 logger
      */
     public function __construct(
         ContainerInterface $parent = null,
@@ -123,6 +92,7 @@ class Container implements ContainerInterface, LoggerAwareInterface
         if (isset($logger)) {
             $this->setLogger($logger);
         }
+        $this->register('Container', $this);
     }
     
     /**
@@ -139,20 +109,17 @@ class Container implements ContainerInterface, LoggerAwareInterface
     /**
      * Define an entry
      *
-     * @param  string                    $id             Identifier of the 
-     *                                                   entry.
+     * @param  string                    $id             Identifier of the entry
      * @param  ContainerInterface|string $nameOrCallable A valid class name or
-     *                                                   a callable which
-     *                                                   returns the entity
-     *                                                   when passed ...$params.
+     *                                                       a callable which
+     *                                                       returns the entity
+     *                                                       when passed
+     *                                                       ...$params
      * @param  array                     $params         An array of parameters
-     *                                                   for entry instantiation.
-     * @param  bool                      $register       Whether the instance,
-     *                                                   once created, should 
-     *                                                   be registered.
+     * @param  bool                      $register       If the entity is shared
      * @throws InvalidArgumentException                  $nameOrCallable is not
-     *                                                   a string or callable.
-     * @return bool
+     *                                                       string or callable
+     * @return bool                      `true` on success, `false` otherwise
      */
     public function define(
         string $id,
@@ -182,23 +149,23 @@ class Container implements ContainerInterface, LoggerAwareInterface
     /**
      * Return a container entry from its identifier
      *
-     * @param  string             $id Identifier of the entry to look for.
-     * @throws TypeError              $id is not a string.
-     * @throws NotFoundException      No entry was found for this identifier.
-     * @throws ContainerException     Error while retrieving the entry.
+     * @param  string             $id Identifier of the entry to look for
+     * @throws TypeError              $id is not a string
+     * @throws NotFoundException      No entry was found for this identifier
+     * @throws ContainerException     Error while retrieving the entry
      * @return mixed
      */
     public function get($id)
     {
         if (!is_string($id)) {
             $msg = 'Parameter must be a string';
-            throw new TypeError($msg);
+            throw new InvalidArgumentException($msg);
         }
         try {
             if ($this->has($id)) {
                 $return = $this->registry[$id] ?? $this->instantiate($id);
             } elseif (!empty($this->children)) {
-                foreach ($children as $child) {
+                foreach ($this->children as $child) {
                     if ($child->has($id)) {
                         $return = $child->get($id);
                         break;
@@ -214,7 +181,7 @@ class Container implements ContainerInterface, LoggerAwareInterface
             $exception =  new ContainerException($msg, $t->getCode(), $t);
             $this->log(
                 LogLevel::CRITICAL,
-                'Atan\Dependnecy unable to resolve ' . $id,
+                'Unable to resolve ' . $id,
                 ['exception' => $exception]
             );
             throw $exception;
@@ -224,7 +191,7 @@ class Container implements ContainerInterface, LoggerAwareInterface
             $exception = new NotFoundException($msg);
             $this->log(
                 LogLevel::ERROR,
-                'Atan\Dependnecy could not find ' . $id,
+                'Could not find ' . $id,
                 ['exception' => $exception]
             );
             throw $exception;
@@ -233,22 +200,22 @@ class Container implements ContainerInterface, LoggerAwareInterface
     }
     
     /**
-     * Return true if the container can return an entry for the given
-     * identifier, false otherwise.
+     * Return `true` if the container can return an entry for the given
+     * identifier, `false` otherwise
      * 
-     * has($id) returning true does not mean that get($id) will not throw an
-     * exception. It does however mean that get($id) will not throw a 
-     * NotFoundException.
+     * `has($id)` returning true does not mean that `get($id)` will not throw an
+     * exception. It does however mean that `get($id)` will not throw a 
+     * `NotFoundException`.
      *
-     * @param  string $id Identifier of the entry to look for.
-     * @throws TypeError  $id is not a string.
+     * @param  string    $id Identifier of the entry to look for
+     * @throws TypeError     $id is not a string
      * @return bool
      */
     public function has($id)
     {
         if (!is_string($id)) {
             $msg = 'Parameter must be a string';
-            throw new TypeError($msg);
+            throw new InvalidArgumentException($msg);
         }
         return isset($this->registry[$id]) || isset($this->definitions[$id]);
     }
@@ -256,9 +223,9 @@ class Container implements ContainerInterface, LoggerAwareInterface
     /**
      * Register an object with the container
      *
-     * @param  string                   $id    Identifier of the entry to add.
-     * @param  object                   $entry Entry to add.
-     * @throws InvalidArgumentException        $entry is not an object.
+     * @param  string                   $id    Identifier of the entry to add
+     * @param  object                   $entry Entry to add
+     * @throws InvalidArgumentException        $entry is not an object
      * @return bool
      */
     public function register(string $id, $entry): bool
@@ -311,9 +278,9 @@ class Container implements ContainerInterface, LoggerAwareInterface
     }
     
     /**
-     * Instantiate antry from its definition
+     * Instantiate an entry from its definition
      *
-     * @param  string $id Identifier of the entry to instantiate.
+     * @param  string $id Identifier of the entry to instantiate
      * @return object
      */
     protected function instantiate(string $id)
@@ -324,7 +291,7 @@ class Container implements ContainerInterface, LoggerAwareInterface
             $params[] = $this->resolveParam($param);
         }
         $return = call_user_func($factory, ...$params);
-        if ($this->definitions[$id]['register']) {
+        if ($this->definitions[$id]['register'] && is_object($return)) {
             $this->register($id, $return);
         }
         return $return;
@@ -333,26 +300,27 @@ class Container implements ContainerInterface, LoggerAwareInterface
     /**
      * Log to a PSR-3 logger, if available
      *
-     * @param  string $level   Use constants provided by LogLevel
-     * @param  string $message
-     * @param  array  $context
+     * @param  string $level   Use constants provided by `LogLevel`
+     * @param  string $message Message to log
+     * @param  array  $context Context array to log
      * @return void
      */
     protected function log(string $level, string $message, array $context = [])
     {
         if (isset($this->logger)) {
-            $this->logger->log($level, $message, $context);
+            $msg = get_class($this) . ': ' . $message;
+            $this->logger->log($level, $msg, $context);
         }
     }
     
     /**
      * Make a callable which returns an instance of the given class, optionally
-     * accepting an arbitary number of paramters.
+     * accepting an arbitrary number of parameters.
      *
      * @param  string                   $className The name of the class the
-     *                                             factory will produce.
+     *                                                 factory will produce
      * @throws InvalidArgumentException            $className is not a valid
-     *                                             class name.
+     *                                             class name
      * @return callable
      */
     protected function makeFactory(string $className): callable
@@ -367,7 +335,7 @@ class Container implements ContainerInterface, LoggerAwareInterface
     }
     
     /**
-     * Resolve the given paramter as a dependency, if possible
+     * Resolve the given parameter as a dependency, if possible
      *
      * Strings beginning with ':' are taken as an identifier to resolve. Arrays
      * are recursively passed through this method to resolve any identifier 
