@@ -65,25 +65,10 @@ class ParentAwareContainer extends Container
         ContainerInterface $parent = null,
         LoggerInterface $logger = null
     ) {
-        foreach ($definitions as $id => $def) {
-            if (!is_array($def)) {
-                $msg = 'Definitions must be an array of definition arrays';
-                throw new InvalidArgumentException($msg, 500);
-            }
-            if (!array_key_exists('entity', $def)) {
-                $msg = 'Definition for ' . $id . ' must supply an entity';
-                throw new InvalidArgumentException($msg, 500);
-            }
-            $params = $def['params'] ?? [];
-            $register = $def['register'] ?? true;
-            $this->define($id, $def['entity'], $params, $register);
-        }
         if (isset($parent)) {
             $this->parent = $parent;
         }
-        if (isset($logger)) {
-            $this->setLogger($logger);
-        }
+        parent::__construct($definitions, $logger);
     }
     
     /**
