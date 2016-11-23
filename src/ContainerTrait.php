@@ -80,6 +80,7 @@ trait ContainerTrait
      * @param  string $id     Entity identifier
      * @param  mixed  $entity Entity to share
      * @return bool           `true` on success, `false` otherwise
+     */
     public function register(string $id, $entity): bool
     {
         $return = !isset($this->registry[$id]);
