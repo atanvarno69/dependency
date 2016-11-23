@@ -35,7 +35,8 @@ use Exception\{
 /** PSR-3 use block */
 use Psr\Log\{
     LoggerAwareInterface,
-    LoggerInterface
+    LoggerInterface,
+    LogLevel
 };
 
 /**
@@ -49,23 +50,31 @@ use Interop\Container\ContainerInterface;
 use BadFunctionCallException, InvalidArgumentException, Throwable;
 
 /**
- * ParentAwareCompositeContainer class
+ * Container class
+ * 
+ * May act stand alone, as a composite container and/or with a parent.
  */
 class Container implements ContainerInterface, LoggerAwareInterface
 {
     /**
      * Properties
      *
-     * @var ContainerInterface[] $children Child containers
-     * @var array $definitions Array of entity definitions
-     * @var LoggerInterface $logger PSR-3 logger
-     * @var ContainerInterface $parent Parent container
-     * @var array $registry    Array of shared entities
+     * @var ContainerInterface[] $children    Child containers
+     * @var array                $definitions Array of entity definitions
+     * @var LoggerInterface      $logger      PSR-3 logger
+     * @var ContainerInterface   $parent      Parent container
+     * @var array                $registry    Array of shared entities
      */
     protected $children, $definitions, $logger, $parent, $registry;
     
     /**
      * Constructor
+     * 
+     * @param  array[]                  $definitions
+     * @param  ContainerInterface       $parent
+     * @param  ContainerInterface[]     $children
+     * @param  LoggerInterface          $logger
+     * @throws InvalidArgumentException
      */
     public function __construct(
         array $definitions = [],
@@ -178,6 +187,7 @@ class Container implements ContainerInterface, LoggerAwareInterface
             $msg = $id . ' not found';
             throw new NotFoundException($msg);
         }
+        $this->log(LogLevel::DEBUG, 'Provided ' . $id);
         return $return;
     }
     
