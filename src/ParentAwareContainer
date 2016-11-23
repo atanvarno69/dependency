@@ -79,4 +79,28 @@ class ParentAwareContainer extends Container
         }
         parent::__construct($logger);
     }
+    
+    /**
+     * Resolve a parameter
+     *
+     * If it is a string starting with ':' attempt to resolve it as a container
+     * entry. Otherwise return it.
+     *
+     * @param  mixed $parameter Parameter to resolve
+     * @return mixed            Resolved parameter
+     */
+    protected function resolveParameter($parameter)
+    {
+        if (isset($this->parent)) {
+            if (is_string($parameter) && strpos($parameter, ':') === 0) {
+                $id = substr($parameter, 1);
+                $return = (this->parent->has($id)) ? $this->parent->get($id) : $parameter;
+            } else {
+                $return = $parameter;
+            }
+        } else {
+            $return = parent::resolveParameter($parameter);
+        }
+        return $return;
+    }
 }
