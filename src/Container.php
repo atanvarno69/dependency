@@ -1,8 +1,8 @@
 <?php
 /**
  * Container class file
- * 
- * Copyright © 2016 atanvarno.com
+ *
+ * Copyright (C) 2016 atanvarno.com
  *
  * This file is part of Atan\Dependency.
  *
@@ -18,13 +18,13 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with Atan\Dependency.  If not, see <http://www.gnu.org/licenses/>.
- * 
- * @package    Atan\Dependency
- * @author     atanvarno.com <https://github.com/atanvarno69>
- * @copyright  2016 atanvarno.com
- * @license    http://opensource.org/licenses/GPL-3.0 GNU GPL v3
+ *
+ * @package   Atan\Dependency
+ * @author    atan <https://github.com/atanvarno69>
+ * @copyright 2016 atanvarno.com
+ * @license   http://opensource.org/licenses/GPL-3.0 GNU GPL v3
  */
- 
+
 namespace Atan\Dependency;
 
 /** Package use block */
@@ -48,331 +48,92 @@ use Psr\Log\{
 use Interop\Container\ContainerInterface;
 
 /** SPL use block */
-use InvalidArgumentException, Throwable;
+use BadFunctionCallException, InvalidArgumentException, Throwable;
 
 /**
  * Container class
- *
- * Basic PSR-11 dependency injection container.
+ * 
+ * Provides a simple stand alone container.
  */
 class Container implements ContainerInterface, LoggerAwareInterface
 {
-    /**
-     * Class properties
-     *
-     * @var ContainerInterface[] $children    Child containers
-     * @var array[]              $definitions Entity definitions
-     * @var LoggerInterface      $logger      PSR-3 logger
-     * @var ContainerInterface   $parent      Parent container
-     * @var object[]             $registry    Registered objects
-     */
-    protected $children, $definitions, $logger, $parent, $registry;
+    /** Trait use block */
+    use ContainerTrait, LoggingTrait;
     
     /**
-     * Constructor
+     * Finds an entry of the container by its identifier and returns it
      *
-     * Optionally set a parent container, an array of child containers and a
-     * PSR-3 logger.
-     *
-     * @param  ContainerInterface   $parent   Parent container
-     * @param  ContainerInterface[] $children Child container(s)
-     * @param  LoggerInterface      $logger   PSR-3 logger
+     * @abstract
+     * @param    string                  $id Identifier of the entry to look for
+     * @throws   ContainerException          Error while retrieving the entry
+     * @throws   InvalidArgumentException    $id is not a string
+     * @throws   NotFoundException           No entry was found for this identifier
+     * @return   mixed                       Entry
      */
-    public function __construct(
-        ContainerInterface $parent = null,
-        array $children = [],
-        LoggerInterface $logger = null
-    ) {
-        if (isset($parent)) {
-            $this->setParent($parent);
-        }
-        if (!empty($children)) {
-            $this->setChildren($children);
-        }
-        if (isset($logger)) {
-            $this->setLogger($logger);
-        }
-        $this->register('Container', $this);
-    }
-    
-    /**
-     * Add a child container
-     *
-     * @param  ContainerInterface $child
-     * @return void
-     */
-    public function addChild(ContainerInterface $child)
-    {
-        $this->children[] = $child;
-    }
-    
-    /**
-     * Define an entry
-     *
-     * @param  string                    $id             Identifier of the entry
-     * @param  ContainerInterface|string $nameOrCallable A valid class name or
-     *                                                       a callable which
-     *                                                       returns the entity
-     *                                                       when passed
-     *                                                       ...$params
-     * @param  array                     $params         An array of parameters
-     * @param  bool                      $register       If the entity is shared
-     * @throws InvalidArgumentException                  $nameOrCallable is not
-     *                                                       string or callable
-     * @return bool                      `true` on success, `false` otherwise
-     */
-    public function define(
-        string $id,
-        $nameOrCallable,
-        array $params = [],
-        bool $register = false
-    ): bool {
-        if (is_string($nameOrCallable)) {
-            $method = $this->makeFactory($nameOrCallable);
-        } elseif (is_callable($nameOrCallable)) {
-            $method = $nameOrCallable;
-        } else {
-            $msg = 'Paramter must be a string or callable';
-            throw new InvalidArgumentException($msg);
-        }
-        $return = !isset($this->definitions[$id]);
-        if ($return) {
-            $this->definitions[$id] = [
-                'method'   => $method,
-                'params'   => $params,
-                'register' => $register,
-            ];
-        }
-        return $return;
-    }
-    
-    /**
-     * Return a container entry from its identifier
-     *
-     * @param  string             $id Identifier of the entry to look for
-     * @throws TypeError              $id is not a string
-     * @throws NotFoundException      No entry was found for this identifier
-     * @throws ContainerException     Error while retrieving the entry
-     * @return mixed
-     */
-    public function get($id)
+    public abstract function get($id)
     {
         if (!is_string($id)) {
             $msg = 'Parameter must be a string';
-            throw new InvalidArgumentException($msg);
+            throw new InvalidArgumentException($msg, 500);
+        }
+        if (!this->has($id)) {
+            $msg = 'Entry ' . $id . ' not found';
+            throw new NotFoundException($msg, 500);
         }
         try {
-            if ($this->has($id)) {
-                $return = $this->registry[$id] ?? $this->instantiate($id);
-            } elseif (!empty($this->children)) {
-                foreach ($this->children as $child) {
-                    if ($child->has($id)) {
-                        $return = $child->get($id);
-                        break;
-                    }
-                }
-            } 
+            $return = $this->registry[$id] ?? $this->getFromDefintion($id);
         } catch (Throwable $t) {
-            $msg = get_class($t)
-                 . ' caught resolving entry '
-                 . $id
-                 . 'with message: '
-                 . $t->getMessage();
-            $exception =  new ContainerException($msg, $t->getCode(), $t);
-            $this->log(
-                LogLevel::CRITICAL,
-                'Unable to resolve ' . $id,
-                ['exception' => $exception]
-            );
-            throw $exception;
-        }
-        if (!isset($return)) {
-            $msg = $id . ' not found';
-            $exception = new NotFoundException($msg);
-            $this->log(
-                LogLevel::ERROR,
-                'Could not find ' . $id,
-                ['exception' => $exception]
-            );
-            throw $exception;
+            $msg = 'Could not get entry ' . $id;
+            throw new ContainerException($msg, 500, $t);
         }
         return $return;
     }
     
     /**
-     * Return `true` if the container can return an entry for the given
-     * identifier, `false` otherwise
-     * 
-     * `has($id)` returning true does not mean that `get($id)` will not throw an
-     * exception. It does however mean that `get($id)` will not throw a 
-     * `NotFoundException`.
+     * Get an entity from its definitions
      *
-     * @param  string    $id Identifier of the entry to look for
-     * @throws TypeError     $id is not a string
-     * @return bool
+     * @param  string                   $id
+     * @throws BadFunctionCallException     Defined callable is invalid
+     * @return mixed                        Entity
      */
-    public function has($id)
+    protected function getFromDefintion(string $id)
     {
-        if (!is_string($id)) {
-            $msg = 'Parameter must be a string';
-            throw new InvalidArgumentException($msg);
-        }
-        return isset($this->registry[$id]) || isset($this->definitions[$id]);
-    }
-    
-    /**
-     * Register an object with the container
-     *
-     * @param  string                   $id    Identifier of the entry to add
-     * @param  object                   $entry Entry to add
-     * @throws InvalidArgumentException        $entry is not an object
-     * @return bool
-     */
-    public function register(string $id, $entry): bool
-    {
-        if (!is_object($entry)) {
-            $msg = 'Paramter must be an object';
-            throw new InvalidArgumentException($msg);
-        }
-        $return = !isset($this->registry[$id]);
-        if ($return) {
-            $this->registry[$id] = $entry;
-        }
-        return $return;
-    }
-    
-    /**
-     * Set an array of child containers
-     *
-     * @param  ContainerInterface[] $children
-     * @return void
-     */
-    public function setChildren(array $children)
-    {
-        $this->children = [];
-        foreach ($children as $child) {
-            $this->addChild($child);
-        }
-    }
-    
-    /**
-     * LoggerAware implementation
-     *
-     * @param  LoggerInterface $logger
-     * @return void
-     */
-    public function setLogger(LoggerInterface $logger)
-    {
-        $this->logger = $logger;
-    }
-    
-    /**
-     * Set a parent container
-     *
-     * @param  ContainerInterface $parent
-     * @return void
-     */
-    public function setParent(ContainerInterface $parent)
-    {
-        $this->parent = $parent;
-    }
-    
-    /**
-     * Instantiate an entry from its definition
-     *
-     * @param  string $id Identifier of the entry to instantiate
-     * @return object
-     */
-    protected function instantiate(string $id)
-    {
-        $factory = $this->definitions[$id]['method'];
+        $method = $this->definitions[$id]['method'];
         $params = [];
-        foreach ($this->definitions[$id]['params'] as $param) {
-            $params[] = $this->resolveParam($param);
+        foreach ($this->definitions[$id]['method'] as $item) {
+            $params[] = $this->resolveParameter($item);
         }
-        $return = call_user_func($factory, ...$params);
-        if ($this->definitions[$id]['register'] && is_object($return)) {
+        try {
+            $return = $method(...$params);
+        } catch (Throwable $t) {
+            throw new BadFunctionCallException(
+                $t->getMessage(),
+                $t->getCode(),
+                $t
+            );
+        }
+        if ($this->definitions[$id]['register']) {
             $this->register($id, $return);
         }
         return $return;
     }
- 
-    /**
-     * Log to a PSR-3 logger, if available
-     *
-     * @param  string $level   Use constants provided by `LogLevel`
-     * @param  string $message Message to log
-     * @param  array  $context Context array to log
-     * @return void
-     */
-    protected function log(string $level, string $message, array $context = [])
-    {
-        if (isset($this->logger)) {
-            $msg = get_class($this) . ': ' . $message;
-            $this->logger->log($level, $msg, $context);
-        }
-    }
     
     /**
-     * Make a callable which returns an instance of the given class, optionally
-     * accepting an arbitrary number of parameters.
+     * Resolve a parameter
      *
-     * @param  string                   $className The name of the class the
-     *                                                 factory will produce
-     * @throws InvalidArgumentException            $className is not a valid
-     *                                             class name
-     * @return callable
+     * If it is a string starting with ':' attempt to resolve it as a container
+     * entry. Otherwise return it.
+     *
+     * @param  mixed $parameter Parameter to resolve
+     * @return mixed            Resolved parameter
      */
-    protected function makeFactory(string $className): callable
+    protected function resolveParameter($parameter)
     {
-        if (!class_exists($className)) {
-            $msg = $className . ' is not a valid class name';
-            throw new InvalidArgumentException($msg);
-        }
-        return function (...$params) use ($className) {
-            return new $className(...$params);
-        };
-    }
-    
-    /**
-     * Resolve the given parameter as a dependency, if possible
-     *
-     * Strings beginning with ':' are taken as an identifier to resolve. Arrays
-     * are recursively passed through this method to resolve any identifier 
-     * strings they contain.
-     *
-     * Other types are returned without attempting to resolve them.
-     *
-     * @param  mixed              $param
-     * @throws ContainerException        Error resolving dependency.
-     * @return mixed
-     */
-    protected function resolveParam($param)
-    {
-        $return = $param;
-        if (is_array($param)) {
-            $return = [];
-            foreach ($param as $key => $item) {
-                $return[$key] = $this->resolveParam($item);
-            }
-        } elseif (is_string($param)) {
-            if (strpos($param, ':') === 0) {
-                $id = substr($param, 1);
-                try {
-                    if (isset($this->parent)) {
-                        $return = $this->parent->get($id);
-                    } else {
-                        $return = $this->get($id);
-                    }
-                } catch (Throwable $t) {
-                    $msg = class_name($t)
-                         . ' caught resolving dependnecy '
-                         . $id
-                         . ' with message: '
-                         . $t->getMessage();
-                    throw new ContainerException($msg, $t->getCode(), $t);
-                }
-            }
+        if (is_string($parameter) && strpos($parameter, ':') === 0) {
+            $id = substr($parameter, 1);
+            $return = (this->has($id)) ? $this->get($id) : $parameter;
+        } else {
+            $return = $parameter;
         }
         return $return;
     }
