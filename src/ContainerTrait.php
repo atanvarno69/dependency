@@ -34,6 +34,7 @@ trait ContainerTrait
      *
      * @var array $definitions Array of entity definitions
      * @var array $registry    Array of shared entities
+     */
     protected $definitions, $registry;
     
     /**
