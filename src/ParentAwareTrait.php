@@ -1,3 +1,4 @@
+<?php
 /**
  * ParentAwareTrait trait file
  * 
@@ -41,7 +42,8 @@ trait ParentAwareTrait
     /**
      * Set the parent container
      *
-     * @param ContainerInterface $parent Parent container
+     * @param  ContainerInterface $parent Parent container
+     * @return void
      */
     public function setParent(ContainerInterface $parent)
     {
