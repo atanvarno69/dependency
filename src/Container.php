@@ -80,6 +80,7 @@ class Container implements ContainerInterface, LoggerAwareInterface
         if (isset($logger)) {
             $this->setLogger($logger);
         }
+        $this->register('Container', $this);
     }
     
     /**
