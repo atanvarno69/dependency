@@ -129,14 +129,11 @@ class Container implements ContainerInterface, LoggerAwareInterface
             if (is_callable($entity)) {
                 $method = $entity;
             } elseif (is_string($entity)) {
-                if (class_exists($entity)) {
-                    $method = $this->makeFactory($entity);
-                } else {
-                    $method = $this->makeProvider($entity);
-                }
-            } else {
-                $method = $this->makeProvider($entity);
+                $method = (class_exists($entity))
+                        ? $this->makeFactory($entity)
+                        : $this->makeProvider($entity);
             }
+            $method = $method ?? $this->makeProvider($entity);
             $this->definitions[$id] = [
                 'method'   => $method,
                 'params'   => $params,
