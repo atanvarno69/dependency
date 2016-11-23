@@ -55,7 +55,7 @@ use Throwable;
 class CompositeContainer extends Container
 {
     /** Traits use block */
-    use CompositeTrait, ContainerTrait, LoggerAwareTrait;
+    use CompositeTrait;
     
     /**
      * Constructor
