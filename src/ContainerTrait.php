@@ -48,8 +48,9 @@ trait ContainerTrait
     /**
      * Constructor
      *
-     * Optionally set a parent container, an array of child containers and a
-     * PSR-3 logger.
+     * Optionally set a PSR-3 logger.
+     *
+     * Registers itself as 'Container'.
      *
      * @param  LoggerInterface      $logger   PSR-3 logger
      */
