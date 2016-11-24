@@ -2,7 +2,7 @@
 [PSR-11 (container-interop)](https://github.com/container-interop/container-interop) dependency injection container.
 
 ## Requirements
-*PHP >= 7.0* is required to use Atan\Dependency but the latest stable version of PHP is recommended.
+**PHP >= 7.0** is required to use Atan\Dependency but the latest stable version of PHP is recommended.
 
 ## Installation
 Add the following to your composer.json:
