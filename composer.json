@@ -8,7 +8,7 @@
     "license": "GPL-3.0",
     "autoload": {
         "psr-4": {
-            "Atan\\Dependency\\": "src/"
+            "Atan\\Dependency\\": "src"
         }
     },
     "autoload-dev": {
