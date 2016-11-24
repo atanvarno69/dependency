@@ -1,8 +1,8 @@
 <?php
 /**
- * NotFoundException class
+ * NotFoundExceptionTest class file
  * 
- * Copyright © 2016 atanvarno.com
+ * Copyright (C) 2016 atanvarno.com
  *
  * This file is part of Atan\Dependency.
  *
@@ -18,26 +18,32 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with Atan\Dependency.  If not, see <http://www.gnu.org/licenses/>.
- * 
- * @package    Atan\Dependency
- * @author     atanvarno.com <https://github.com/atanvarno69>
- * @copyright  2016 atanvarno.com
- * @license    http://opensource.org/licenses/GPL-3.0 GNU GPL v3
+ *
+ * @package   Atan\Dependency
+ * @author    atan <https://github.com/atanvarno69>
+ * @copyright 2016 atanvarno.com
+ * @license   http://opensource.org/licenses/GPL-3.0 GNU GPL v3
  */
- 
-namespace Atan\Dependency\Exception;
+
+namespace Atan\Dependency\Test;
+
+/** PHPUnit use block */
+use PHPUnit_Framework_TestCase as TestCase;
+
+use Atan\Dependency\Exception\NotFoundException;
 
 /**
- * PSR-11 Container Interface use block
+ * PSR-11 use block
  *
- * @todo Update to `Psr` namespace when PSR-11 available
+ * @todo Change to `Psr` namespace when PSR-11 accepted
  */
 use Interop\Container\Exception\NotFoundException as NotFoundExceptionInterface;
 
-/** NotFoundException class */
-class NotFoundException
-    extends ContainerException
-    implements NotFoundExceptionInterface
-{
-    
+class NotFoundExceptionTest extends TestCase
+{   
+    public function testContainerExceptionImplementsInterface()
+    {
+        $exception = new NotFoundException();
+        $this->assertInstanceOf(NotFoundExceptionInterface::class, $exception);
+    }
 }
