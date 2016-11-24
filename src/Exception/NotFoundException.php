@@ -27,9 +27,6 @@
  
 namespace Atan\Dependency\Exception;
 
-/** Package use block */
-use ContainerException;
-
 /**
  * PSR-11 Container Interface use block
  *
