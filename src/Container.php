@@ -27,7 +27,7 @@
 namespace Atan\Dependency;
 
 /** Package use block */
-use Exception\{
+use Atan\Dependency\Exception\{
     ContainerException,
     NotFoundException
 };
@@ -209,14 +209,6 @@ class Container implements ContainerInterface, LoggerAwareInterface
             throw new InvalidArgumentException($msg, 500);
         }
         $return = isset($this->registry[$id]) || isset($this->definitions[$id]);
-        if (!$return && !empty($this->children)) {
-            foreach ($this->children as $child) {
-                $return = $child->has($id);
-                if ($return) {
-                    break;
-                }
-            }
-        }
         return $return;
     }
     
