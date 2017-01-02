@@ -87,13 +87,9 @@ class Container implements ContainerInterface, LoggerAwareInterface
                 $msg = 'Definitions must be an array of definition arrays';
                 throw new InvalidArgumentException($msg, 500);
             }
-            if (!array_key_exists('entity', $def)) {
-                $msg = 'Definition for ' . $id . ' must supply an entity';
-                throw new InvalidArgumentException($msg, 500);
-            }
-            $params = $def['params'] ?? [];
-            $register = $def['register'] ?? true;
-            $this->define($id, $def['entity'], $params, $register);
+            $params = $def[1] ?? [];
+            $register = $def[2] ?? true;
+            $this->define($id, $def[0], $params, $register);
         }
         if (isset($parent)) {
             $this->setParent($parent);
