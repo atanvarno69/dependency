@@ -1,113 +1,96 @@
 <?php
 /**
- * ContainerTest class file
- * 
- * Copyright (C) 2016 atanvarno.com
- *
- * This file is part of Atan\Dependency.
- *
- * Atan\Dependency is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Atan\Dependency is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Atan\Dependency.  If not, see <http://www.gnu.org/licenses/>.
+ * ContainerTest class file.
  *
  * @package   Atan\Dependency
- * @author    atan <https://github.com/atanvarno69>
- * @copyright 2016 atanvarno.com
- * @license   http://opensource.org/licenses/GPL-3.0 GNU GPL v3
+ * @author    atanvarno69 <https://github.com/atanvarno69>
+ * @copyright 2017 atanvarno.com
+ * @license   https://opensource.org/licenses/MIT The MIT License
  */
 
 namespace Atan\Dependency\Test;
 
-/** PSR-3 use block */
-use Psr\Log\LoggerAwareInterface;
+/** SPL use block. */
+use Exception, InvalidArgumentException;
 
 /** PHPUnit use block */
 use PHPUnit_Framework_TestCase as TestCase;
 
-use Atan\Dependency\Container;
-
-/**
- * PSR-11 use block
- *
- * @todo Change to `Psr` namespace when PSR-11 accepted
- */
+/** PSR-11 use block. */
 use Interop\Container\{
     ContainerInterface,
     Exception\ContainerException as ContainerExceptionInterface,
     Exception\NotFoundException as NotFoundExceptionInterface
 };
 
-use Monolog\{
-    Logger,
-    Handler\StreamHandler
-};
-
-use Exception, InvalidArgumentException;
+/** Package use block. */
+use Atan\Dependency\Container;
 
 class ContainerTest extends TestCase
 {
-    protected $container, $logger;
+    protected $container;
     
     public function setUp()
     {
-        $logPath = __DIR__ . '/log';
-        $this->logger = new Logger('testLogger');
-        $this->logger->pushHandler(new StreamHandler($logPath, Logger::DEBUG));
         $this->container = new Container();
-    }
-    
-    public function tearDown()
-    {
-        $path = __DIR__ . '/log';
-        if (file_exists($path)) {
-            unlink($path);
-        }
     }
     
     public function testConstructorDefaults()
     {
         $this->assertInstanceOf(ContainerInterface::class, $this->container);
-        $this->assertInstanceOf(LoggerAwareInterface::class, $this->container);
     }
     
     public function testConstructorAcceptsWellFormedDefinitionsArray()
     {
         $definitions = [
             'Test1' => [
-                'entity' => 'test string',
+                'tests string',
+                [],
+                true,
+            ],
+        ];
+        $container = new Container($definitions);
+        $expected = [
+            'Test1' => [
+                'method' => function (...$params) {
+                    return 'tests string';
+                },
                 'params' => [],
                 'register' => true,
             ],
         ];
-        $container = new Container($definitions);
-        $this->assertInstanceOf(Container::class, $container);
+        $this->assertAttributeEquals($expected, 'definitions', $container);
     }
     
     public function testConstructorAcceptsMinimalDefinitionsArray()
     {
         $definitions = [
             'Test1' => [
-                'entity' => 'test string',
+                'tests string',
             ],
         ];
         $container = new Container($definitions);
-        $this->assertInstanceOf(Container::class, $container);
+        $expected = [
+            'Test1' => [
+                'method' => function (...$params) {
+                    return 'tests string';
+                },
+                'params' => [],
+                'register' => true,
+            ],
+        ];
+        $this->assertAttributeEquals($expected, 'definitions', $container);
     }
     
     public function testConstructorAcceptsParent()
     {
         $parent = new Container();
         $container = new Container([], $parent);
-        $this->assertInstanceOf(Container::class, $container);
+        $this->assertAttributeInstanceOf(
+            ContainerInterface::class,
+            'parent',
+            $container
+        );
     }
     
     public function testConstructorAcceptsChildren()
@@ -115,19 +98,14 @@ class ContainerTest extends TestCase
         $child1 = new Container();
         $child2 = new Container();
         $container = new Container([], null, [$child1, $child2]);
-        $this->assertInstanceOf(Container::class, $container);
-    }
-    
-    public function testConstructorAcceptsLogger()
-    {
-        $container = new Container([], null, [], $this->logger);
-        $this->assertInstanceOf(Container::class, $container);
+        $this->assertAttributeEquals([$child1, $child2], 'children', $container);
     }
     
     public function testConstructorSetsEntryForSelf()
     {
         $container = new Container();
-        $this->assertTrue($container->has('Container'));
+        $result = $container->get('Container');
+        $this->assertSame($container, $result);
     }
     
     public function testConstructorThrowsInvalidArgumentExceptionWhenDefinitionsNotArrayOfArrays()
@@ -136,19 +114,6 @@ class ContainerTest extends TestCase
             'string',
             0,
             true,
-        ];
-        $this->expectException(InvalidArgumentException::class);
-        new Container($definitions);
-    }
-    
-    public function testConstructorThrowsInvalidArgumentExceptionWhenDefinitionsDoesNotContainEntity()
-    {
-        $definitions = [
-            'Test1' => [
-                'wrongKey' => 'test string',
-                'params' => [],
-                'register' => true,
-            ],
         ];
         $this->expectException(InvalidArgumentException::class);
         new Container($definitions);
@@ -187,14 +152,6 @@ class ContainerTest extends TestCase
         $child->define('Test', 'value');
         $this->container->appendChild($child);
         $this->assertEquals('value', $this->container->get('Test'));
-    }
-    
-    public function testLogsDebugOnSucess()
-    {
-        $this->container->setLogger($this->logger);
-        $this->container->define('Test', 'value');
-        $this->container->get('Test');
-        $this->assertFileExists(__DIR__ . '/log');
     }
     
     public function testGetWhenParamsRequired()
@@ -271,7 +228,7 @@ class ContainerTest extends TestCase
     
     public function testPrependChildGivesHigherPriority()
     {
-        $child1 = new Container(['Test' => ['entity' => 1]]);
+        $child1 = new Container(['Test' => [1]]);
         $this->container->appendChild($child1);
         $child2 = new Container();
         $child2->define('Test', 2);

@@ -1,8 +1,8 @@
 # Atan\Dependency
-[PSR-11 (container-interop)](https://github.com/container-interop/container-interop) dependency injection container.
+[PSR-11](https://github.com/container-interop/container-interop) dependency injection container.
 
 ## Requirements
-**PHP >= 7.0** is required to use Atan\Dependency but the latest stable version of PHP is recommended.
+**PHP >= 7.0** is required, but the latest stable version of PHP is recommended.
 
 ## Installation
 Add the following to your composer.json:
@@ -20,12 +20,10 @@ Add the following to your composer.json:
 }
 ```
 Then:
-```
+```bash
 $ composer install
-```
-Alternatively, add the repository above to your composer.json and:
-```
-$ composer require atan/dependency
+# or
+$ composer update
 ```
 
 ## Container
@@ -39,7 +37,7 @@ $container = new Container();
 $container->define('ID', ClassName::class, ['Constructor', 'Params', ':OtherID']);
 
 // Register already instantiated entries
-$container->register('OtherID', $dependency);
+$container->register('OtherID', $instance);
 
 // Get an entry
 $entry = $container->get('ID');
@@ -51,6 +49,9 @@ Container implements the *delegate lookup* feature and can act as a composite co
 See the [API](https://github.com/atanvarno69/dependency/blob/master/doc/Container.md).
 
 ## Full API
-* [Atan\Dependency\Container](https://github.com/atanvarno69/dependency/blob/master/doc/Container.md).
-* [Atan\Dependency\Exception\ContainerException](https://github.com/atanvarno69/dependency/blob/master/doc/ContainerException.md).
-* [Atan\Dependency\Exception\NotFoundException](https://github.com/atanvarno69/dependency/blob/master/doc/NotFoundException.md).
+* [Atan\Dependency\Container](https://github
+.com/atanvarno69/dependency/blob/master/docs/Container.md).
+* [Atan\Dependency\Exception\ContainerException](https://github
+.com/atanvarno69/dependency/blob/master/docs/ContainerException.md).
+* [Atan\Dependency\Exception\NotFoundException](https://github
+.com/atanvarno69/dependency/blob/master/docs/NotFoundException.md).

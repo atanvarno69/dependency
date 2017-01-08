@@ -1,11 +1,19 @@
 {
     "name": "atan/dependency",
-    "description": "PSR-11 (container-interop) dependency injection container",
+    "description": "PSR-11 dependency injection container",
     "keywords": [
          "PSR-11", "container-interop", "container", "dependency injection", "dependency injection container"
     ],
-    "homepage": "https://github.com/atanvarno69/error",
-    "license": "GPL-3.0",
+    "homepage": "https://github.com/atanvarno69/dependency",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "atanvarno69",
+            "email": "atanvarno69@gmail.com",
+            "homepage": "https://github.com/atanvarno69",
+            "role": "Developer"
+        }
+    ],
     "autoload": {
         "psr-4": {
             "Atan\\Dependency\\": "src"
@@ -13,17 +21,16 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Atan\\Dependency\\Test\\": "test"
+            "Atan\\Dependency\\Test\\": "tests"
         }
     },
     "require": {
         "php": "^7.0",
-        "psr/log": "^1.0.2",
         "container-interop/container-interop": "^1.1.0"
     },
     "require-dev": {
-        "monolog/monolog": "^1.21.0",
-        "phpunit/phpunit": "^5.6.1"
+        "phpunit/phpunit": "^5.7.5"
     },
-    "minimum-stability": "dev"
+    "minimum-stability": "dev",
+    "prefer-stable": true
 }
