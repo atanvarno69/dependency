@@ -1,6 +1,6 @@
 <?php
 /**
- * Container class file
+ * Container class file.
  *
  * @package   Atan\Dependency
  * @author    atanvarno69 <https://github.com/atanvarno69>
@@ -11,237 +11,112 @@
 namespace Atan\Dependency;
 
 /** SPL use block. */
-use BadFunctionCallException, InvalidArgumentException, Throwable;
+use Throwable;
 
 /** PSR-11 use block. */
-use Interop\Container\ContainerInterface;
+use Psr\Container\ContainerInterface;
 
-/** Package use block */
-use Atan\Dependency\Exception\{
-    ContainerException,
-    NotFoundException
+/** Package use block. */
+use Atan\Container\Exception\{
+    ContainerException, NotFoundException
 };
 
+/**
+ * A basic container implementing PSR-11 `ContainerInterface`.
+ *
+ * The container may contain and return any PHP type. These container entries
+ * are associated with a unique user-defined `string` identifier. All entries,
+ * except defined classes, are registered, that is a call to `get()` with the
+ * identifier will always return the same value.
+ *
+ * Defined classes are added using an instance of the `Defintion` class. Defined
+ * classes are registered by default, so that after the first call to `get()`,
+ * when the object is lazy loaded, `get()` will always return the same instance.
+ * If a new instance is required from each call to `get()`, that must be
+ * explicitly indicated in the `Defintion` class.
+ */
 class Container implements ContainerInterface
 {
     /**
-     * @var ContainerInterface[] $children    Child containers.
-     * @var array                $definitions Array of entity definitions.
-     * @var ContainerInterface   $parent      Parent container.
-     * @var array                $registry    Array of shared entities.
+     * @var Definition[] $definitions
+     * @var mixed[]      $registry
      */
-    protected $children, $definitions, $parent, $registry;
-    
+    private $definitions, $registry;
+
     /**
-     * Container constructor.
-     * 
-     * @param array[]              $definitions Array of definition arrays.
-     * @param ContainerInterface   $parent      Parent container.
-     * @param ContainerInterface[] $children    Child containers.
+     * Container Constructor.
      *
-     * @throws InvalidArgumentException `$definitions` is not array of arrays.
+     * Accepts an array of entries for the `add()` method.
+     *
+     * @param mixed[] An array of entries indexed by their container identifier.
      */
-    public function __construct(
-        array $definitions = [],
-        ContainerInterface $parent = null,
-        array $children = []
-    ) {
-        foreach ($definitions as $id => $def) {
-            if (!is_array($def)) {
-                $msg = 'Definitions must be an array of definition arrays';
-                throw new InvalidArgumentException($msg, 500);
-            }
-            $params = $def[1] ?? [];
-            $register = $def[2] ?? true;
-            $this->define($id, $def[0], $params, $register);
+    public function __construct(array $entries = []) {
+        foreach ($entries as $id => $entry) {
+            $this->add($id, $entry)
         }
-        if (isset($parent)) {
-            $this->setParent($parent);
-        }
-        foreach ($children as $child) {
-            $this->appendChild($child);
-        }
-        $this->register('Container', $this);
-    }
-    
-    /**
-     * Append a child container.
-     *
-     * @param ContainerInterface $child Child container.
-     *
-     * @return void
-     */
-    public function appendChild(ContainerInterface $child)
-    {
-        $this->children[] = $child;
-    }
-    
-    /**
-     * Define an entity.
-     *
-     * @param  string  $id       Entity identifier.
-     * @param  mixed   $entity   Entity factory callable, class name or entity.
-     * @param  mixed[] $params   Parameters for entity construction.
-     * @param  bool    $register Whether the entity should become shared.
-     *
-     * @return bool `true` on success, `false` otherwise.
-     */
-    public function define(
-        string $id,
-        $entity,
-        array $params = [],
-        bool $register = true
-    ): bool {
-        $return = !isset($this->definitions[$id]);
-        if ($return) {
-            if (is_callable($entity)) {
-                $method = $entity;
-            } elseif (is_string($entity)) {
-                $method = (class_exists($entity))
-                        ? $this->makeFactory($entity)
-                        : $this->makeProvider($entity);
-            }
-            $method = $method ?? $this->makeProvider($entity);
-            $this->definitions[$id] = [
-                'method'   => $method,
-                'params'   => $params,
-                'register' => $register,
-            ];
-        }
-        return $return;
-    }
-    
-    /**
-     * Finds an entry of the container by its identifier and returns it.
-     *
-     * @param string $id Identifier of the entry to look for.
-     *
-     * @throws NotFoundException  No entry was found for this identifier.
-     * @throws ContainerException Error while retrieving the entry.
-     *
-     * @return mixed Entry.
-     */
-    public function get($id)
-    {
-        if (!is_string($id)) {
-            $msg = 'Identifier must be a string';
-            throw new InvalidArgumentException($msg, 500);
-        }
-        try {
-            if ($this->has($id)) {
-                $return = $this->registry[$id] ?? $this->getFromDefinition($id);
-            } elseif (!empty($this->children)) {
-                foreach ($this->children as $child) {
-                    if ($child->has($id)) {
-                        $return = $child->get($id);
-                        break;
-                    }
-                }
-            }       
-        } catch (Throwable $t) {
-            $msg = 'Could not get ' . $id . ': ' . $t->getMessage();
-            throw new ContainerException($msg, $t->getCode(), $t);
-        }
-        if (!isset($return)) {
-            $msg = $id . ' not found';
-            throw new NotFoundException($msg);
-        }
-        return $return;
-    }
-    
-    /**
-     * Returns true if the container can return an entry for the given identifier.
-     * Returns false otherwise.
-     * 
-     * `has($id)` returning true does not mean that `get($id)` will not throw an exception.
-     * It does however mean that `get($id)` will not throw a `NotFoundException`.
-     *
-     * @param string $id Identifier of the entry to look for.
-     *
-     * @return boolean
-     */
-    public function has($id)
-    {
-        if (!is_string($id)) {
-            $msg = 'Identifier must be a string';
-            throw new InvalidArgumentException($msg, 500);
-        }
-        $return = isset($this->registry[$id]) || isset($this->definitions[$id]);
-        return $return;
-    }
-    
-    /**
-     * Prepend a child container.
-     *
-     * @param ContainerInterface $child Child container.
-     *
-     * @return void
-     */
-    public function prependChild(ContainerInterface $child)
-    {
-        array_unshift($this->children, $child);
-    }
-    
-    /**
-     * Register an entity as shared.
-     *
-     * @param string $id     Entity identifier.
-     * @param mixed  $entity Entity to share.
-     *
-     * @return bool `true` on success, `false` otherwise
-     */
-    public function register(string $id, $entity): bool
-    {
-        $return = !isset($this->registry[$id]);
-        if ($return) {
-            $this->registry[$id] = $entity;
-        }
-        return $return;
-    }
-    
-    /**
-     * Set the parent container.
-     *
-     * @param ContainerInterface $parent Parent container.
-     *
-     * @return void
-     */
-    public function setParent(ContainerInterface $parent)
-    {
-        $this->parent = $parent;
     }
 
-    private function getFromDefinition(string $id)
+    /**
+     * Adds an entry to the container.
+     *
+     * If the entry is a `Definition` instance, the defined class will be lazy
+     * loaded when called (it may be registered on first instantiation, see
+     * `Definition` class). Other entries will be registered.
+     *
+     * @param string $id    Identifier of the entry to add.
+     * @param mixed  $entry The `Definition` instance or other value to add.
+     *
+     * @return void
+     */
+    public function add(string $id, $entry)
     {
-        $method = $this->definitions[$id]['method'];
-        $params = [];
-        foreach ($this->definitions[$id]['params'] as $param) {
-            $params[] = $this->resolveParameter($param);
+        if ($entry instanceof Definition) {
+            $this->defintions[$id] = $entry;
+            return;
         }
-        try {
-            $return = $method(...$params);
-        } catch (Throwable $t) {
-            $msg = 'Invalid user defined callable for ' . $id;
-            throw new BadFunctionCallException($msg, $t->getCode(), $t);
+        $this->registry[$id] = $entry;
+    }
+
+    /** @inheritdoc */
+    public function get(string $id)
+    {
+        if (!$this->has($id)) {
+            $msg = 'Cannot find ' . $id;
+            throw new NotFoundException($msg);
         }
-        if ($this->definitions[$id]['register']) {
+        if (array_key_exists($id, $this->registry)) {
+            return $this->registry[$id];
+        }
+        $defintion = $this->getDefinition($id);
+        $parameters = [];
+        $i = 0;
+        foreach ($defintion->getParameters() as $parameter) {
+            $i++;
+            try {
+                $parameters[] = $this->resolveParameter($parameter);
+            } catch (Throwable as $caught) {
+                $msg = "Error getting $id, parameter $i: "
+                    . $caught->getMessage();
+                throw new ContainerException($msg, $caught->getCode(), $caught);
+            }
+        }
+        $return = new ($defintion->getClassName())(...$parameters);
+        if ($this->defintions[$id]['register']) {
             $this->register($id, $return);
         }
         return $return;
     }
 
-    private function makeFactory(string $className): callable
+    /** @inheritdoc */
+    public function has(string $id): bool
     {
-        return function (...$params) use ($className) {
-            return new $className(...$params);
-        };
+        return array_key_exists($id, $this->registry)
+            || array_key_exists($id, $this->definitions);
     }
 
-    private function makeProvider($entity): callable
+    private function getDefinition(string $id): Definition
     {
-        return function (...$params) use ($entity) {
-            return $entity;
-        };
+        return $this->definitions[$id];
     }
 
     private function resolveParameter($parameter)
@@ -250,9 +125,7 @@ class Container implements ContainerInterface
         if (is_string($parameter)) {
             if (strpos($parameter, ':') === 0) {
                 $id = substr($parameter, 1);
-                $return = (isset($this->parent))
-                        ? $this->parent->get($id)
-                        : $this->get($id);
+                $return = ($this->has($id)) ? $this->get($id) : $parameter;
             }
         }
         if (is_array($parameter)) {
