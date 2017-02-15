@@ -1,46 +1,24 @@
 <?php
 /**
- * ContainerException class
- * 
- * Copyright © 2016 atanvarno.com
+ * ContainerException class file.
  *
- * This file is part of Atan\Dependency.
- *
- * Atan\Dependency is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Atan\Dependency is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Atan\Dependency.  If not, see <http://www.gnu.org/licenses/>.
- * 
- * @package    Atan\Dependency
- * @author     atanvarno.com <https://github.com/atanvarno69>
- * @copyright  2016 atanvarno.com
- * @license    http://opensource.org/licenses/GPL-3.0 GNU GPL v3
+ * @package   Atan\Dependency
+ * @author    atanvarno69 <https://github.com/atanvarno69>
+ * @copyright 2017 atanvarno.com
+ * @license   https://opensource.org/licenses/MIT The MIT License
  */
  
 namespace Atan\Dependency\Exception;
 
-/**
- * PSR-11 Container Interface use block
- *
- * @todo Update to `Psr` namespace when PSR-11 available
- */
-use Interop\Container\Exception\ContainerException as ContainerExceptionInterface;
-
 /** SPL use block */
 use Exception;
 
+/** PSR-11 use block. */
+use Psr\Container\ContainerExceptionInterface
+
 /** ContainerException class */
-class ContainerException
-    extends Exception 
-    implements ContainerExceptionInterface
+class ContainerException extends Exception implements
+    ContainerExceptionInterface
 {
     
 }
