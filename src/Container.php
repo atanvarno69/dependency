@@ -11,7 +11,7 @@
 namespace Atan\Dependency;
 
 /** SPL use block. */
-use Throwable;
+use ArrayAccess, Throwable;
 
 /** PSR-11 use block. */
 use Psr\Container\ContainerInterface;
@@ -35,13 +35,10 @@ use Atan\Container\Exception\{
  * If a new instance is required from each call to `get()`, that must be
  * explicitly indicated in the `Defintion` class.
  */
-class Container implements ContainerInterface
+class Container implements ArrayAccess, ContainerInterface
 {
-    /**
-     * @var Definition[] $definitions
-     * @var mixed[]      $registry
-     */
-    private $definitions, $registry;
+    /** @var mixed[] $registry */
+    private $registry;
 
     /**
      * Container Constructor.
@@ -70,11 +67,14 @@ class Container implements ContainerInterface
      */
     public function add(string $id, $entry)
     {
-        if ($entry instanceof Definition) {
-            $this->defintions[$id] = $entry;
-            return;
-        }
         $this->registry[$id] = $entry;
+    }
+    
+    public function delete(string $id)
+    {
+        if (array_key_exists($id, $this->registry) {
+            unset($this->registry[$id]);
+        }
     }
 
     /** @inheritdoc */
@@ -84,10 +84,10 @@ class Container implements ContainerInterface
             $msg = 'Cannot find ' . $id;
             throw new NotFoundException($msg);
         }
-        if (array_key_exists($id, $this->registry)) {
-            return $this->registry[$id];
+        $defintion = $this->registry[$id];
+        if (!$defintion instanceof Definition) {
+            return $defintion;
         }
-        $defintion = $this->getDefinition($id);
         $parameters = [];
         $i = 0;
         foreach ($defintion->getParameters() as $parameter) {
@@ -110,13 +110,43 @@ class Container implements ContainerInterface
     /** @inheritdoc */
     public function has(string $id): bool
     {
-        return array_key_exists($id, $this->registry)
-            || array_key_exists($id, $this->definitions);
+        return array_key_exists($id, $this->registry);
     }
-
-    private function getDefinition(string $id): Definition
+    
+    /** @inheritdoc */
+    public function offsetExists($offset)
     {
-        return $this->definitions[$id];
+        if (!is_string($offset) {
+            return false;
+        }
+        return $this->has($offset);
+    }
+    
+    /** @inheritdoc */
+    public function offsetGet($offset)
+    {
+        if (!is_string($offset) {
+            return null;
+        }
+        return $this->get($offset);
+    }
+    
+    /** @inheritdoc */
+    public function offsetSet($offset, $value)
+    {
+        if (!is_string($offset) {
+            return;
+        }
+        return $this->add($offset, $value);
+    }
+    
+    /** @inheritdoc */
+    public function offsetUnset($offset)
+    {
+        if (!is_string($offset) {
+            return;
+        }
+        return $this->delete($offset);
     }
 
     private function resolveParameter($parameter)
