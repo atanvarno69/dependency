@@ -1,11 +1,11 @@
 # Atan\Dependency
-[PSR-11](https://github.com/container-interop/container-interop) dependency injection container.
+[PSR-11](http://www.php-fig.org/psr/psr-11/) dependency injection container.
 
 ## Requirements
 **PHP >= 7.0** is required, but the latest stable version of PHP is recommended.
 
 ## Installation
-Add the following to your composer.json:
+Add the following to your `composer.json` file:
 ```json
 {
     "repositories": [
@@ -15,7 +15,7 @@ Add the following to your composer.json:
         }
     ],
     "require": {
-        "atan/dependency": "^0.2.0"
+        "atan/dependency": "^0.3.0"
     }
 }
 ```
@@ -26,32 +26,25 @@ $ composer install
 $ composer update
 ```
 
-## Container
-[PSR-11](https://github.com/container-interop/container-interop) dependency injection container.
+## Basic Usage
 ```php
-use Atan\Dependency\Container;
+use Atan\Dependency\{
+    Container, Definition
+};
 
 $container = new Container();
 
-// Define entries to be lazy loaded
-$container->define('ID', ClassName::class, ['Constructor', 'Params', ':OtherID']);
+// Define a class to be lazy loaded:
+$container->add('ID', new Definition(ClassName::class, ['Constructor', 'Params', ':OtherID']));
 
-// Register already instantiated entries
-$container->register('OtherID', $instance);
+// Register another value:
+$value = ['some', 'array', 10, new ClassName()];
+$container->add('OtherID', $value);
 
 // Get an entry
 $entry = $container->get('ID');
 ```
-Container marks all entries as registered (the same entity will always be returned) upon first instantiation, unless told otherwise. Container can provide objects from a class name, the output of a callable, or any other non-`null` type.
-
-Container implements the *delegate lookup* feature and can act as a composite container (with entries) and/or a child container, using its `setParent()`, `appendChild()` and `prependChild()` methods.
-
-See the [API](https://github.com/atanvarno69/dependency/blob/master/doc/Container.md).
+`Container` marks all entries as registered (the same entity will always be returned) upon first instantiation, unless told otherwise in a `Definition`.
 
 ## Full API
-* [Atan\Dependency\Container](https://github
-.com/atanvarno69/dependency/blob/master/docs/Container.md).
-* [Atan\Dependency\Exception\ContainerException](https://github
-.com/atanvarno69/dependency/blob/master/docs/ContainerException.md).
-* [Atan\Dependency\Exception\NotFoundException](https://github
-.com/atanvarno69/dependency/blob/master/docs/NotFoundException.md).
+See [API](https://github.com/atanvarno69/dependency/blob/master/docs/API.md).
