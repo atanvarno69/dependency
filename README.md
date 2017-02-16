@@ -35,17 +35,14 @@ use Atan\Dependency\{
 // Create the container:
 $container = new Container();
 
-// Define some enteries (which can be of any type):
-$container->add('ID', ['some', 'values']);
-$container['ID'] = ['some', 'values'];     // As above, but using array access.
+// Add an entery (which can be of any type):
+$container->add('ID', $someEntry);
 
 // Get an entry
 $entry = $container->get('ID');
-$entry = $container['ID'];      // Using array access.
 
-// Define a class to be lazy loaded
+// To define a class to be lazy loaded, use the `Definition` class:
 $container->add('Lazy', new Definition(SomeClass::class));
-$container['Lazy'] = new Definition(SomeClass::class);     // Using array access.
 
 // Define a lazy loaded class with values to be passed to its constructor:
 $container->add('Lazy',
@@ -53,13 +50,21 @@ $container->add('Lazy',
 );
 
 // Use a container ID string prefixed with ':' to pass a container entry as a parameter:
-$container['param2'] = 2;
-$container['Lazy'] = new Definition(SomeClass::class, [1, ':param2']);
+$container->add('param2', 2);
+$container->add('Lazy', new Definition(SomeClass::class, [1, ':param2']));
 
 // By default the same entry for a lazy loaded class is always returned after it
 // has been created the first time. You can instead return a new instance on
 // each call by passing `false` as the third parameter to the definition:
-$container['Lazy'] = new Definition(SomeClass::class, [], false);
+$container->add('Lazy', new Definition(SomeClass::class, [], false));
+
+// Check the container has an entry for a given identifier:
+$item $container->has('ID') ? $container->get('ID') : 'Not set';
+
+// You can use array syntax instead:
+$container['ID'] = $someEntry; # Add an entry
+$array = $container['ID'];     # Get an entry
+isset($container['ID']);       # Check an entry
 ```
 
 ## Full API
