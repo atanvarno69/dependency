@@ -13,6 +13,13 @@ namespace Atan\Dependency;
 /** SPL use block. */
 use InvalidArgumentException;
 
+/**
+ * Class Definition
+ *
+ * A definition for a lazy loaded `Container` entry.
+ *
+ * Provides a fluent interface to define a class.
+ */
 class Definition
 {
     /**
@@ -27,7 +34,7 @@ class Definition
      * Definition constructor.
      *
      * A class name must be given. Constructor parameters and register flag
-     * are optional.
+     * for the defined class are optional.
      *
      * @api
      *

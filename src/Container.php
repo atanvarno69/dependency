@@ -22,6 +22,8 @@ use Atan\Dependency\Exception\{
 };
 
 /**
+ * Class Container
+ *
  * A basic container implementing PSR-11 `ContainerInterface`.
  *
  * The container may contain and return any PHP type. These container entries
@@ -40,14 +42,53 @@ class Container implements ArrayAccess, ContainerInterface
     /** @var mixed[] $registry */
     private $registry;
 
-    public function define(
-        string $className,
-        array $parameters = [],
-        bool $register = true
-    ): Definition {
-        return new Definition($className, $parameters, $register);
+    /**
+     * Container constructor.
+     *
+     * Optionally accepts an array of entries.
+     *
+     * Optionally accepts an identifier for itself, defaults to 'container'.
+     *
+     * @api
+     *
+     * @param mixed[] $entries Entries to contain.
+     * @param string  $id      Identifier for the container's own entry.
+     */
+    public function __construct(array $entries = [], string $id = 'container')
+    {
+        foreach ($entries as $id => $entry) {
+            $this->add($id, $entry);
+        }
+        $this->add($id, $this);
     }
 
+    /**
+     * Adds an entry to the container.
+     *
+     * An entry can be of any type. To define a lazy loaded class, give an
+     * instance of the `Definition` class.
+     *
+     * @api
+     *
+     * @param string $id    Identifier of the entry to set.
+     * @param mixed  $value Value of the entry to set.
+     *
+     * @return void
+     */
+    public function add(string $id, $value)
+    {
+        $this->registry[$id] = $value;
+    }
+
+    /**
+     * Deletes an entry from the container.
+     *
+     * @api
+     *
+     * @param string $id Identifier of the entry to delete.
+     *
+     * @return void
+     */
     public function delete(string $id)
     {
         unset($this->registry[$id]);
@@ -76,7 +117,7 @@ class Container implements ArrayAccess, ContainerInterface
             );
         }
         if ($entry->getRegister()) {
-            $this->set($id, $return);
+            $this->add($id, $return);
         }
         return $return;
     }
@@ -90,11 +131,13 @@ class Container implements ArrayAccess, ContainerInterface
         return array_key_exists($id, $this->registry);
     }
 
-    public function set(string $id, $value)
-    {
-        $this->registry[$id] = $value;
-    }
-
+    /**
+     * @internal Implements `ArrayAccess`.
+     *
+     * @param mixed $offset
+     *
+     * @return bool
+     */
     public function offsetExists($offset): bool
     {
         if (!is_string($offset)) {
@@ -103,6 +146,13 @@ class Container implements ArrayAccess, ContainerInterface
         return $this->has($offset);
     }
 
+    /**
+     * @internal Implements `ArrayAccess`.
+     *
+     * @param mixed $offset
+     *
+     * @return mixed
+     */
     public function offsetGet($offset)
     {
         if (!is_string($offset) || !$this->has($offset)) {
@@ -111,13 +161,28 @@ class Container implements ArrayAccess, ContainerInterface
         return $this->get($offset);
     }
 
+    /**
+     * @internal Implements `ArrayAccess`.
+     *
+     * @param mixed $offset
+     * @param mixed $value
+     *
+     * @return void
+     */
     public function offsetSet($offset, $value)
     {
         if (is_string($offset)) {
-            $this->set($offset, $value);
+            $this->add($offset, $value);
         }
     }
 
+    /**
+     * @internal Implements `ArrayAccess`.
+     *
+     * @param mixed $offset
+     *
+     * @return void
+     */
     public function offsetUnset($offset)
     {
         if (is_string($offset)) {
