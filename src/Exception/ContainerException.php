@@ -14,7 +14,7 @@ namespace Atan\Dependency\Exception;
 use Exception;
 
 /** PSR-11 use block. */
-use Psr\Container\ContainerExceptionInterface
+use Psr\Container\ContainerExceptionInterface;
 
 /** ContainerException class */
 class ContainerException extends Exception implements

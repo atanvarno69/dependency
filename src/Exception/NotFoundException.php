@@ -11,7 +11,7 @@
 namespace Atan\Dependency\Exception;
 
 /** PSR-11 use block. */
-use Psr\Container\NotFoundExceptionInterface
+use Psr\Container\NotFoundExceptionInterface;
 
 /** NotFoundException class */
 class NotFoundException extends ContainerException implements

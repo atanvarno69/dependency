@@ -11,13 +11,13 @@
 namespace Atan\Dependency;
 
 /** SPL use block. */
-use ArrayAccess, Throwable;
+use ArrayAccess, Throwable, TypeError;
 
 /** PSR-11 use block. */
 use Psr\Container\ContainerInterface;
 
 /** Package use block. */
-use Atan\Container\Exception\{
+use Atan\Dependency\Exception\{
     ContainerException, NotFoundException
 };
 
@@ -29,139 +29,126 @@ use Atan\Container\Exception\{
  * except defined classes, are registered, that is a call to `get()` with the
  * identifier will always return the same value.
  *
- * Defined classes are added using an instance of the `Defintion` class. Defined
- * classes are registered by default, so that after the first call to `get()`,
- * when the object is lazy loaded, `get()` will always return the same instance.
- * If a new instance is required from each call to `get()`, that must be
- * explicitly indicated in the `Defintion` class.
+ * Defined classes are added using an instance of the `Definition` class.
+ * Defined classes are registered by default, so that after the first call to
+ * `get()`, when the object is lazy loaded, `get()` will always return the
+ * same instance. If a new instance is required from each call to `get()`,
+ * that must be explicitly indicated in the `Definition` class.
  */
 class Container implements ArrayAccess, ContainerInterface
 {
     /** @var mixed[] $registry */
     private $registry;
 
-    /**
-     * Container Constructor.
-     *
-     * Accepts an array of entries for the `add()` method.
-     *
-     * @param mixed[] An array of entries indexed by their container identifier.
-     */
-    public function __construct(array $entries = []) {
-        foreach ($entries as $id => $entry) {
-            $this->add($id, $entry)
-        }
+    public function define(
+        string $className,
+        array $parameters = [],
+        bool $register = true
+    ): Definition {
+        return new Definition($className, $parameters, $register);
     }
 
-    /**
-     * Adds an entry to the container.
-     *
-     * If the entry is a `Definition` instance, the defined class will be lazy
-     * loaded when called (it may be registered on first instantiation, see
-     * `Definition` class). Other entries will be registered.
-     *
-     * @param string $id    Identifier of the entry to add.
-     * @param mixed  $entry The `Definition` instance or other value to add.
-     *
-     * @return void
-     */
-    public function add(string $id, $entry)
-    {
-        $this->registry[$id] = $entry;
-    }
-    
     public function delete(string $id)
     {
-        if (array_key_exists($id, $this->registry) {
-            unset($this->registry[$id]);
-        }
+        unset($this->registry[$id]);
     }
 
     /** @inheritdoc */
-    public function get(string $id)
+    public function get($id)
     {
+        if (!is_string($id)) {
+            throw new TypeError('Parameter must be a string');
+        }
         if (!$this->has($id)) {
-            $msg = 'Cannot find ' . $id;
-            throw new NotFoundException($msg);
+            throw new NotFoundException("$id not found");
         }
-        $defintion = $this->registry[$id];
-        if (!$defintion instanceof Definition) {
-            return $defintion;
+        $entry = $this->registry[$id];
+        if (!$entry instanceof Definition) {
+            return $entry;
         }
-        $parameters = [];
-        $i = 0;
-        foreach ($defintion->getParameters() as $parameter) {
-            $i++;
-            try {
-                $parameters[] = $this->resolveParameter($parameter);
-            } catch (Throwable as $caught) {
-                $msg = "Error getting $id, parameter $i: "
-                    . $caught->getMessage();
-                throw new ContainerException($msg, $caught->getCode(), $caught);
-            }
+        try {
+            $return = $this->build($entry);
+        } catch (Throwable $caught) {
+            throw new ContainerException(
+                "Error getting $id",
+                $caught->getCode(),
+                $caught
+            );
         }
-        $return = new ($defintion->getClassName())(...$parameters);
-        if ($this->defintions[$id]['register']) {
-            $this->register($id, $return);
+        if ($entry->getRegister()) {
+            $this->set($id, $return);
         }
         return $return;
     }
 
     /** @inheritdoc */
-    public function has(string $id): bool
+    public function has($id): bool
     {
+        if (!is_string($id)) {
+            throw new TypeError('Parameter must be a string');
+        }
         return array_key_exists($id, $this->registry);
     }
-    
-    /** @inheritdoc */
-    public function offsetExists($offset)
+
+    public function set(string $id, $value)
     {
-        if (!is_string($offset) {
+        $this->registry[$id] = $value;
+    }
+
+    public function offsetExists($offset): bool
+    {
+        if (!is_string($offset)) {
             return false;
         }
         return $this->has($offset);
     }
-    
-    /** @inheritdoc */
+
     public function offsetGet($offset)
     {
-        if (!is_string($offset) {
+        if (!is_string($offset) || !$this->has($offset)) {
             return null;
         }
         return $this->get($offset);
     }
-    
-    /** @inheritdoc */
+
     public function offsetSet($offset, $value)
     {
-        if (!is_string($offset) {
-            return;
+        if (is_string($offset)) {
+            $this->set($offset, $value);
         }
-        return $this->add($offset, $value);
-    }
-    
-    /** @inheritdoc */
-    public function offsetUnset($offset)
-    {
-        if (!is_string($offset) {
-            return;
-        }
-        return $this->delete($offset);
     }
 
-    private function resolveParameter($parameter)
+    public function offsetUnset($offset)
     {
-        $return = $parameter;
-        if (is_string($parameter)) {
-            if (strpos($parameter, ':') === 0) {
-                $id = substr($parameter, 1);
-                $return = ($this->has($id)) ? $this->get($id) : $parameter;
-            }
+        if (is_string($offset)) {
+            $this->delete($offset);
         }
-        if (is_array($parameter)) {
-            $return = [];
-            foreach ($parameter as $key => $item) {
-                $return[$key] = $this->resolveParameter($item);
+    }
+
+    private function build(Definition $definition)
+    {
+        $name = $definition->getClassName();
+        $params = $this->resolveParams($definition->getParameters());
+        $object = new $name(...$params);
+        $methods = $definition->getMethods();
+        foreach ($methods as $method => $params) {
+            $params = $this->resolveParams($params);
+            call_user_func([$object, $method], ...$params);
+        }
+        return $object;
+    }
+
+    private function resolveParams(array $parameters): array
+    {
+        $return = [];
+        foreach ($parameters as $key => $value) {
+            $return[$key] = $value;
+            if (is_array($value)) {
+                $return[$key] = $this->resolveParams($value);
+            }
+            if (is_string($value) && strpos(':', $value) === 0) {
+                $id = substr($value, 1);
+                $return[$key] = $this->has($id) ? $this->get($id) : $value;
             }
         }
         return $return;
