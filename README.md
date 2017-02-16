@@ -59,12 +59,16 @@ $container->add('Lazy', new Definition(SomeClass::class, [1, ':param2']));
 $container->add('Lazy', new Definition(SomeClass::class, [], false));
 
 // Check the container has an entry for a given identifier:
-$item $container->has('ID') ? $container->get('ID') : 'Not set';
+$item = $container->has('ID') ? $container->get('ID') : 'Not set';
+
+// Delete an entry from the container:
+$container->delete('ID');
 
 // You can use array syntax instead:
 $container['ID'] = $someEntry; # Add an entry
 $array = $container['ID'];     # Get an entry
 isset($container['ID']);       # Check an entry
+unset($container['ID']);       # Delete an entry
 ```
 
 ## Full API
