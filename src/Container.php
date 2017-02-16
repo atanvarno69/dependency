@@ -56,8 +56,8 @@ class Container implements ArrayAccess, ContainerInterface
      */
     public function __construct(array $entries = [], string $id = 'container')
     {
-        foreach ($entries as $id => $entry) {
-            $this->add($id, $entry);
+        foreach ($entries as $key => $entry) {
+            $this->add($key, $entry);
         }
         $this->add($id, $this);
     }
@@ -198,7 +198,7 @@ class Container implements ArrayAccess, ContainerInterface
         $methods = $definition->getMethods();
         foreach ($methods as $method => $params) {
             $params = $this->resolveParams($params);
-            call_user_func([$object, $method], ...$params);
+            $object->$method(...$params);
         }
         return $object;
     }
@@ -211,7 +211,7 @@ class Container implements ArrayAccess, ContainerInterface
             if (is_array($value)) {
                 $return[$key] = $this->resolveParams($value);
             }
-            if (is_string($value) && strpos(':', $value) === 0) {
+            if (is_string($value) && strpos($value, ':') === 0) {
                 $id = substr($value, 1);
                 $return[$key] = $this->has($id) ? $this->get($id) : $value;
             }

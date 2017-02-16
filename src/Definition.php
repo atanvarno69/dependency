@@ -54,7 +54,7 @@ class Definition
             throw new InvalidArgumentException($msg);
         }
         $this->className = $className;
-        $this->parameters($parameters);
+        $this->parameters = $parameters;
         $this->register($register);
         $this->methods = [];
     }
