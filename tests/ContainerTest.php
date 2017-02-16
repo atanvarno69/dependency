@@ -11,245 +11,256 @@
 namespace Atan\Dependency\Test;
 
 /** SPL use block. */
-use Exception, InvalidArgumentException;
+use TypeError;
 
 /** PHPUnit use block */
-use PHPUnit_Framework_TestCase as TestCase;
+use PHPUnit\Framework\TestCase;
 
 /** PSR-11 use block. */
-use Interop\Container\{
-    ContainerInterface,
-    Exception\ContainerException as ContainerExceptionInterface,
-    Exception\NotFoundException as NotFoundExceptionInterface
+use Psr\Container\{
+    ContainerInterface, ContainerExceptionInterface, NotFoundExceptionInterface
 };
 
 /** Package use block. */
-use Atan\Dependency\Container;
+use Atan\Dependency\{
+    Container, Definition
+};
 
 class ContainerTest extends TestCase
 {
-    protected $container;
-    
-    public function setUp()
-    {
-        $this->container = new Container();
-    }
-    
     public function testConstructorDefaults()
     {
-        $this->assertInstanceOf(ContainerInterface::class, $this->container);
+        $container = new Container();
+        $expected = ['container' => $container];
+        $this->assertInstanceOf(ContainerInterface::class, $container);
+        $this->assertAttributeEquals($expected, 'registry', $container);
     }
-    
-    public function testConstructorAcceptsWellFormedDefinitionsArray()
+
+    public function testConstructorWithEntries()
     {
-        $definitions = [
-            'Test1' => [
-                'tests string',
-                [],
-                true,
-            ],
-        ];
-        $container = new Container($definitions);
+        $container = new Container([
+            'one' => 1,
+            'two' => 'two',
+            'three' => [3]
+        ]);
         $expected = [
-            'Test1' => [
-                'method' => function (...$params) {
-                    return 'tests string';
-                },
-                'params' => [],
-                'register' => true,
-            ],
+            'one' => 1,
+            'two' => 'two',
+            'three' => [3],
+            'container' => $container
         ];
-        $this->assertAttributeEquals($expected, 'definitions', $container);
+        $this->assertAttributeEquals($expected, 'registry', $container);
     }
-    
-    public function testConstructorAcceptsMinimalDefinitionsArray()
+
+    public function testConstructorWithContainerName()
     {
-        $definitions = [
-            'Test1' => [
-                'tests string',
-            ],
-        ];
-        $container = new Container($definitions);
-        $expected = [
-            'Test1' => [
-                'method' => function (...$params) {
-                    return 'tests string';
-                },
-                'params' => [],
-                'register' => true,
-            ],
-        ];
-        $this->assertAttributeEquals($expected, 'definitions', $container);
+        $container = new Container([], 'name');
+        $expected = ['name' => $container];
+        $this->assertAttributeEquals($expected, 'registry', $container);
     }
-    
-    public function testConstructorAcceptsParent()
+
+    public function testAdd()
     {
-        $parent = new Container();
-        $container = new Container([], $parent);
-        $this->assertAttributeInstanceOf(
-            ContainerInterface::class,
-            'parent',
+        $container = new Container();
+        $container->add('test', 'value');
+        $this->assertAttributeEquals(
+            ['container' => $container, 'test' => 'value'],
+            'registry',
             $container
         );
     }
-    
-    public function testConstructorAcceptsChildren()
+
+    public function testDelete()
     {
-        $child1 = new Container();
-        $child2 = new Container();
-        $container = new Container([], null, [$child1, $child2]);
-        $this->assertAttributeEquals([$child1, $child2], 'children', $container);
+        $container = new Container([
+            'one' => 1,
+            'two' => 'two',
+            'three' => [3]
+        ]);
+        $expected = [
+            'one' => 1,
+            'three' => [3],
+            'container' => $container
+        ];
+        $container->delete('two');
+        $this->assertAttributeEquals($expected, 'registry', $container);
     }
-    
-    public function testConstructorSetsEntryForSelf()
+
+    public function testGetThrowsTypeErrorForNonStringParam()
     {
         $container = new Container();
-        $result = $container->get('Container');
+        $this->expectException(TypeError::class);
+        $container->get(1);
+    }
+
+    public function testGetThrowsNotFoundExceptionForNotSetId()
+    {
+        $container = new Container();
+        $this->expectException(NotFoundExceptionInterface::class);
+        $container->get('not set');
+    }
+
+    public function testGetReturnsValueForValidId()
+    {
+        $container = new Container();
+        $result = $container->get('container');
         $this->assertSame($container, $result);
     }
-    
-    public function testConstructorThrowsInvalidArgumentExceptionWhenDefinitionsNotArrayOfArrays()
+
+    public function testGetReturnsInstanceFromDefinition()
     {
-        $definitions = [
-            'string',
-            0,
-            true,
+        $container = new Container([
+            'testCase' => new Definition(Container::class)
+        ]);
+        $result = $container->get('testCase');
+        $this->assertInstanceOf(Container::class, $result);
+    }
+
+    public function testGetResolvesPostInstantiateMethods()
+    {
+        $definition = (new Definition(Container::class))
+            ->method('add', ['id', 'value']);
+        $container = new Container(['testCase' => $definition]);
+        $result = $container->get('testCase');
+        $expected = [
+            'container' => $result,
+            'id' => 'value',
         ];
-        $this->expectException(InvalidArgumentException::class);
-        new Container($definitions);
+        $this->assertAttributeEquals($expected, 'registry', $result);
     }
-    
-    public function testDefineWithCallable()
+
+    public function testGetResolvesConstructorParamsFromContainer()
     {
-        $callable = function(...$params) {
-            return 'value';
-        };
-        $this->container->define('Test', $callable);
-        $this->assertTrue($this->container->has('Test'));
-        $this->assertEquals('value', $this->container->get('Test'));
+        $definition = (new Definition(Container::class))
+            ->parameter(['testEntry' => ':parentEntry']);
+        $container = new Container([
+            'testCase' => $definition,
+            'parentEntry' => 5,
+        ]);
+        $result = $container->get('testCase');
+        $expected = [
+            'container' => $result,
+            'testEntry' => 5
+        ];
+        $this->assertAttributeEquals($expected, 'registry', $result);
     }
-    
-    public function testDefineWithClassName()
+
+    public function testGetThrowsContainerExceptionWhenBuildThrowsThrowable()
     {
-        $this->container->define('Test', Container::class);
-        $this->assertTrue($this->container->has('Test'));
-        $this->assertInstanceOf(Container::class, $this->container->get('Test'));
-    }
-    
-    /**
-     * @dataProvider provideDefineWithOtherEntity
-     */
-    public function testDefineWithOtherEntity($entity)
-    {
-        $this->container->define('Test', $entity);
-        $this->assertTrue($this->container->has('Test'));
-        $this->assertEquals($entity, $this->container->get('Test'));
-    }
-    
-    public function testGetGetsFromChildrenIfEntryNotFound()
-    {
-        $child = new Container();
-        $child->define('Test', 'value');
-        $this->container->appendChild($child);
-        $this->assertEquals('value', $this->container->get('Test'));
-    }
-    
-    public function testGetWhenParamsRequired()
-    {
-        $callable = function($input) {
-            return 'A' . $input;
-        };
-        $this->container->define('Test', $callable, ['B']);
-        $this->assertEquals('AB', $this->container->get('Test'));
-    }
-    
-    public function testGetWhenArrayParamsRequired()
-    {
-        $callable = function(array $input, string $terminator) {
-            return implode('-', $input) . $terminator;
-        };
-        $this->container->define('Test', $callable, [['A', 'B', 'C'], '-D']);
-        $this->assertEquals('A-B-C-D', $this->container->get('Test'));
-    }
-    
-    public function testGetWhenDependencyParamRequired()
-    {
-        $callable = function($input) {
-            return 'A' . $input;
-        };
-        $this->container->define('Test', $callable, [':Dependency']);
-        $this->container->define('Dependency', 'B');
-        $this->assertEquals('AB', $this->container->get('Test'));
-    }
-    
-    public function testGetWhenDependencyParamFromParent()
-    {
-        $parent = new Container();
-        $parent->define('Dependency', 'B');
-        $callable = function($input) {
-            return 'A' . $input;
-        };
-        $this->container->define('Test', $callable, [':Dependency']);
-        $this->container->define('Dependency', 'C');
-        $this->container->setParent($parent);
-        $this->assertEquals('AB', $this->container->get('Test'));
-        
-    }
-    
-    public function testGetThrowsInvalidArgumentExceptionWhenNonStringIdGiven()
-    {
-        $this->container->define('1', 'value');
-        $this->expectException(InvalidArgumentException::class);
-        $this->container->get(1);
-    }
-    
-    public function testGetThrowsContainerExceptionIfUserCallableThrowsThrowable()
-    {
-        $callable = function(...$params) {
-            throw new Exception();
-        };
-        $this->container->define('Test', $callable);
+        $definition = (new Definition(Container::class))
+            ->method('get', [1]);
+        $container = new Container(['id' => $definition]);
         $this->expectException(ContainerExceptionInterface::class);
-        $this->container->get('Test');
+        $container->get('id');
     }
-    
-    public function testGetThrowsNotFoundExceptionIfNotFound()
+
+    public function testHasThrowsTypeErrorForNonStringParam()
     {
-        $this->expectException(NotFoundExceptionInterface::class);
-        $this->container->get('Test');
+        $container = new Container();
+        $this->expectException(TypeError::class);
+        $container->has(1);
     }
-    
-    public function testHasThrowsInvalidArgumentExceptionWhenNonStringIdGiven()
+
+    public function testHasReportsTrueForValidEntry()
     {
-        $this->container->define('1', 'value');
-        $this->expectException(InvalidArgumentException::class);
-        $this->container->has(1);
+        $container = new Container(['entry' => 'value']);
+        $this->assertTrue($container->has('entry'));
     }
-    
-    public function testPrependChildGivesHigherPriority()
+
+    public function testHasReportsFalseForInvalidEntry()
     {
-        $child1 = new Container(['Test' => [1]]);
-        $this->container->appendChild($child1);
-        $child2 = new Container();
-        $child2->define('Test', 2);
-        $this->container->prependChild($child2);
-        $this->assertEquals(2, $this->container->get('Test'));
+        $container = new Container();
+        $this->assertFalse($container->has('entry'));
     }
-    
-    public function provideDefineWithOtherEntity()
+
+    public function testOffsetExistsReportsFalseForNonString()
     {
-        $object = new class(){};
-        return [
-            [true],
-            [false],
-            [0],
-            [1],
-            [1.1],
-            [1.1e2],
-            [1.1e-1],
-            ['string'],
-            [[true, 0]],
-            [$object],
-        ];
+        $container = new Container(['1' => 'value']);
+        $this->assertFalse(isset($container[1]));
+    }
+
+    public function testOffsetExistsReportsTrueForValidEntry()
+    {
+        $container = new Container();
+        $this->assertTrue(isset($container['container']));
+    }
+
+    public function testOffsetExistsReportsFalseForVInvalidEntry()
+    {
+        $container = new Container();
+        $this->assertFalse(isset($container['not set']));
+    }
+
+    public function testOffsetGetReturnsNullForNonString()
+    {
+        $container = new Container(['1' => 'value']);
+        $this->assertNull($container[1]);
+    }
+
+    public function testOffsetGetReturnsValidEntry()
+    {
+        $container = new Container(['entry' => 'value']);
+        $this->assertSame('value', $container['entry']);
+    }
+
+    public function testOffsetGetReturnsNullForInvalidEntry()
+    {
+        $container = new Container();
+        $this->assertNull($container['entry']);
+    }
+
+    public function testOffsetSetDoesNothingForNonStringId()
+    {
+        $container = new Container();
+        $container[1] = 'value';
+        $this->assertAttributeEquals(
+            ['container' => $container],
+            'registry',
+            $container
+        );
+    }
+
+    public function testOffsetSetSetsValueWithStringId()
+    {
+        $container = new Container();
+        $container['entry'] = 'value';
+        $this->assertAttributeEquals(
+            ['container' => $container, 'entry' => 'value'],
+            'registry',
+            $container
+        );
+    }
+
+    public function testOffsetUnsetDoesNothingForNonStringId()
+    {
+        $container = new Container(['1' => 'value']);
+        unset($container[1]);
+        $this->assertAttributeEquals(
+            ['container' => $container, 1 => 'value'],
+            'registry',
+            $container
+        );
+    }
+
+    public function testOffsetUnsetDoesNothingForNotSetId()
+    {
+        $container = new Container(['entry' => 'value']);
+        unset($container['not set']);
+        $this->assertAttributeEquals(
+            ['container' => $container, 'entry' => 'value'],
+            'registry',
+            $container
+        );
+    }
+
+    public function testOffsetUnsetDeletesValueForStringId()
+    {
+        $container = new Container(['entry' => 'value']);
+        unset($container['entry']);
+        $this->assertAttributeEquals(
+            ['container' => $container],
+            'registry',
+            $container
+        );
     }
 }
