@@ -4,22 +4,36 @@ A basic container implementing [PSR-11 `ContainerInterface`](http://www.php-fig.
 class Container implements ArrayAccess, ContainerInterface {
 
     /* Methods */
-    public __construct  ( [ array $entries = [] [, string $id =  'container' ] ] )
-    public void  add    ( string $id, mixed $value )
-    public void  delete ( string $id )
-    public mixed get    ( string $id )
-    public bool  has    ( string $id )
+    public __construct        ( [ array $entries = [] [, string $id =  'container' ] ] )
+    public void       add     ( string $id, mixed $value )
+    public Definition class   ( string $className, ...$parameters )
+    public void       delete  ( string $id )
+    public EntryProxy entry   ( string $id )
+    public Definition factory ( string $className, ...$parameters )
+    public mixed      get     ( string $id )
+    public bool       has     ( string $id )
 }
 ```
-The container may contain and return any PHP type. These container entries are associated with a unique user-defined `string` identifier. All entries, except defined classes, are registered, that is a call to [`get()`](#get) with the identifier will always return the same value.
+The container may contain and return any PHP type. These container entries are associated with a unique user-defined `string` identifier. All entries, except those defined with [`factory()`](#factory), are registered, that is a call to [`get()`](#get) with the identifier will always return the same value.
 
-Defined classes are added using an instance of the `Definition` class. Defined classes are registered by default, so that after the first call to [`get()`](#get), when the object is lazy loaded, [`get()`](#get) will always return the same instance. If a new instance is required from each call to [`get()`](#get), that must be explicitly indicated in the [`Definition`](Definition.md) class.
+Entries can be defined using the [`add()`](#add) method. Lazy loaded classes are defined using [`class()`](#class) (for registered classes) or [`factory()`](#factory) (for unregistered classes).
 
-As the class implements [`ArrayAccess`](http://php.net/manual/en/class.arrayaccess.php), it can be used with array syntax.
+As `Container` implements [`ArrayAccess`](http://php.net/manual/en/class.arrayaccess.php), it can be used with array syntax:
+```php
+# Array syntax              # Alias of
+$container['ID'] = $value;  $container->add('ID', $value);
+$item = $container['ID'];   $item = $container->get('ID');
+isset($container['ID']);    $container->has('ID');
+unset($container['ID']);    $container->delete('ID');
+```
+Note that unlike a normal array, only `string` identifiers will be accepted by the array syntax (as [PSR-11](http://www.php-fig.org/psr/psr-11/#21-psrcontainercontainerinterface) only permits `string` identifiers); using `int` (or other) identifer types with array syntax will silently fail.
 
 * [__construct](#__construct)
 * [add](#add)
+* [class](#class)
 * [delete](#delete)
+* [entry](#entry)
+* [factory](#factory)
 * [get](#get)
 * [has](#has)
 
@@ -62,6 +76,26 @@ Nothing is thrown.
 ### Returns
 `void`
 
+## class
+Adds a registered class definition for lazy loading.
+```php
+public Definition class ( string $className, mixed ...$parameters )
+```
+After first instantiation, the same instance will be returned by [`get()`](#get) on each call. If this is not the desired behaviour, you should use [`factory()`](#factory).
+
+### Parameters
+#### className
+The `string` name of the class to register. Using the [`::class` keyword](http://php.net/manual/en/language.oop5.basic.php#language.oop5.basic.class.class) is recommended.
+
+#### parameters
+An `array` of values to pass to the defined class's constructor. To pass a container entry, use [`entry()`](#entry).
+
+### Throws
+`InvalidArgumentException` if the given class name does not exist.
+
+### Returns
+A [`Definition`](Definition.md) instance.
+
 ## delete
 Deletes an entry from the container.
 ```php
@@ -76,6 +110,41 @@ Nothing is thrown.
 
 ### Returns
 `void`
+
+## entry
+Use a container entry as a parameter.
+```php
+public EntryProxy entry ( string $id )
+```
+### Parameters
+#### id
+The `string` identifier of the entry to reference.
+
+### Throws
+Nothing is thrown.
+
+### Returns
+An `EntryProxy` instance. When an `EntryProxy` is encountered in a parameter list while resolving a definition it is replaced with the container entry with the given identifier.
+
+## factory
+Adds a registered class definition for lazy loading.
+```php
+public Definition class ( string $className, mixed ...$parameters )
+```
+A new instance will be returned by [`get()`](#get) on each call. If this is not the desired behaviour, you should use [`class()`](#class).
+
+### Parameters
+#### className
+The `string` name of the class to register. Using the [`::class` keyword](http://php.net/manual/en/language.oop5.basic.php#language.oop5.basic.class.class) is recommended.
+
+#### parameters
+An `array` of values to pass to the defined class's constructor. To pass a container entry, use [`entry()`](#entry).
+
+### Throws
+`InvalidArgumentException` if the given class name does not exist.
+
+### Returns
+A [`Definition`](Definition.md) instance.
 
 ## get
 Finds an entry of the container by its identifier and returns it.
