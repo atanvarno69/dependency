@@ -4,7 +4,7 @@ A basic container implementing [PSR-11 `ContainerInterface`](http://www.php-fig.
 class Container implements ArrayAccess, ContainerInterface {
 
     /* Methods */
-    public __construct        ( [ array $entries = [] [, string $id =  'container' ] ] )
+    public __construct        ( [ string $id = 'container' ] )
     public void       add     ( string $id, mixed $value )
     public Definition class   ( string $className, ...$parameters )
     public void       delete  ( string $id )
@@ -39,14 +39,9 @@ Note that unlike a normal array, only `string` identifiers will be accepted by t
 
 ## __construct
 ```php
-public __construct ( [ array $entries = [] [, string $id =  'container' ] ] )
+public __construct ( [ string $id = 'container' ] )
 ```
 ### Parameters
-#### entries
-Optional. Defaults to an empty array.
-
-An `array` of `mixed` entry values indexed by `string` identifiers. See [`add()`](#add).
-
 #### id
 Optional. Defaults to `string 'container'`.
 
@@ -88,7 +83,7 @@ After first instantiation, the same instance will be returned by [`get()`](#get)
 The `string` name of the class to register. Using the [`::class` keyword](http://php.net/manual/en/language.oop5.basic.php#language.oop5.basic.class.class) is recommended.
 
 #### parameters
-An `array` of values to pass to the defined class's constructor. To pass a container entry, use [`entry()`](#entry).
+An arbitary length list of `mixed` values to pass to the defined class's constructor. To use an entry defined in the container, use [`entry()`](#entry).
 
 ### Throws
 `InvalidArgumentException` if the given class name does not exist.
@@ -138,7 +133,7 @@ A new instance will be returned by [`get()`](#get) on each call. If this is not 
 The `string` name of the class to register. Using the [`::class` keyword](http://php.net/manual/en/language.oop5.basic.php#language.oop5.basic.class.class) is recommended.
 
 #### parameters
-An `array` of values to pass to the defined class's constructor. To pass a container entry, use [`entry()`](#entry).
+An arbitary length list of `mixed` values to pass to the defined class's constructor. To use an entry defined in the container, use [`entry()`](#entry).
 
 ### Throws
 `InvalidArgumentException` if the given class name does not exist.
