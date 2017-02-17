@@ -28,14 +28,14 @@ use Atan\Dependency\Exception\{
  *
  * The container may contain and return any PHP type. These container entries
  * are associated with a unique user-defined `string` identifier. All entries,
- * except defined classes, are registered, that is a call to `get()` with the
- * identifier will always return the same value.
+ * except those defined with the `factory()` method, are registered, that is a
+ * call to `get()` with the identifier will always return the same value.
  *
- * Defined classes are added using an instance of the `Definition` class.
- * Defined classes are registered by default, so that after the first call to
- * `get()`, when the object is lazy loaded, `get()` will always return the
- * same instance. If a new instance is required from each call to `get()`,
- * that must be explicitly indicated in the `Definition` class.
+ * To define a class to be lazy loaded, use one of the `class()` or `factory()`
+ * methods. For other entries, use the `add()` method.
+ *
+ * Entries can be accessed using the methods defined in `ContainerInterface` or
+ * using array syntax.
  */
 class Container implements ArrayAccess, ContainerInterface
 {
