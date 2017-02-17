@@ -45,17 +45,17 @@ class Definition
      * @throws InvalidArgumentException Given class name does not exist.
      */
     public function __construct(
+        bool $register,
         string $className,
-        array $parameters = [],
-        bool $register = true
+        array $parameters = []
     ) {
         if (!class_exists($className)) {
             $msg = "A class named '$className' does not exist";
             throw new InvalidArgumentException($msg);
         }
+        $this->register = $register;
         $this->className = $className;
         $this->parameters = $parameters;
-        $this->register($register);
         $this->methods = [];
     }
 
@@ -117,80 +117,10 @@ class Definition
      *
      * @return $this Fluent interface.
      */
-    public function method(string $name, array $parameters = []): Definition
+    public function method(string $name, ...$parameters): Definition
     {
+        $parameters = $parameters ?? [];
         $this->methods[$name] = $parameters;
-        return $this;
-    }
-
-    /**
-     * Add multiple methods to call after class instantiation.
-     *
-     * Accepts an array, indices are method names and values are parameters
-     * to pass.
-     *
-     * @api
-     *
-     * @param array $methods Method calls.
-     *
-     * @return $this Fluent interface.
-     */
-    public function methods(array $methods): Definition
-    {
-        foreach ($methods as $name => $parameters) {
-            $this->method($name, $parameters);
-        }
-        return $this;
-    }
-
-    /**
-     * Add a parameter to pass to the class constructor.
-     *
-     * To use a container entry as a parameter use its `string` identifier
-     * prefixed with ':'.
-     *
-     * @api
-     *
-     * @param mixed $parameter Constructor parameter.
-     *
-     * @return $this Fluent interface.
-     */
-    public function parameter($parameter): Definition
-    {
-        $this->parameters[] = $parameter;
-        return $this;
-    }
-
-    /**
-     * Add multiple parameters to pass to the class constructor.
-     *
-     * To use a container entry as a parameter use its `string` identifier
-     * prefixed with ':'.
-     *
-     * @api
-     *
-     * @param mixed[] $parameters Constructor parameters.
-     *
-     * @return $this Fluent interface.
-     */
-    public function parameters(array $parameters): Definition
-    {
-        $this->parameters = array_merge($this->parameters, $parameters);
-        return $this;
-    }
-
-    /**
-     * Set the registration flag for the class.
-     *
-     * @api
-     *
-     * @param bool $value Register flag.
-     *
-     * @return $this Fluent interface.
-     */
-    public function register(bool $value = true): Definition
-    {
-        $this->register = $value;
         return $this;
     }
 }
