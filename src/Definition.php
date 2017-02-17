@@ -1,7 +1,5 @@
 <?php
 /**
- * Definition class file.
- *
  * @package   Atan\Dependency
  * @author    atanvarno69 <https://github.com/atanvarno69>
  * @copyright 2017 atanvarno.com
@@ -14,7 +12,7 @@ namespace Atan\Dependency;
 use InvalidArgumentException;
 
 /**
- * Class Definition
+ * Atan\Dependency\Definition
  *
  * A definition for a lazy loaded `Container` entry.
  *
