@@ -36,23 +36,17 @@ class Definition
      * A class name must be given. Constructor parameters and register flag
      * for the defined class are optional.
      *
-     * @api
+     * @internal For use by `Container::class()` and `Container::factory()`.
      *
      * @param string $className  Name of the defined class.
      * @param array  $parameters Parameters to pass to the constructor.
      * @param bool   $register   Whether the instance should be registered.
-     *
-     * @throws InvalidArgumentException Given class name does not exist.
      */
     public function __construct(
         bool $register,
         string $className,
         array $parameters = []
     ) {
-        if (!class_exists($className)) {
-            $msg = "A class named '$className' does not exist";
-            throw new InvalidArgumentException($msg);
-        }
         $this->register = $register;
         $this->className = $className;
         $this->parameters = $parameters;
