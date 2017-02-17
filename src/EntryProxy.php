@@ -1,6 +1,6 @@
 <?php
 /**
- * Container class file.
+ * EntryProxy class file.
  *
  * @package   Atan\Dependency
  * @author    atanvarno69 <https://github.com/atanvarno69>
