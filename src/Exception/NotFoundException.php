@@ -1,7 +1,5 @@
 <?php
 /**
- * NotFoundException class file.
- *
  * @package   Atan\Dependency
  * @author    atanvarno69 <https://github.com/atanvarno69>
  * @copyright 2017 atanvarno.com
@@ -13,7 +11,11 @@ namespace Atan\Dependency\Exception;
 /** PSR-11 use block. */
 use Psr\Container\NotFoundExceptionInterface;
 
-/** NotFoundException class */
+/** 
+ * Atan\Dependency\Exception\NotFoundException
+ *
+ * @internal Exception implementing `NotFoundExceptionInterface`.
+ */
 class NotFoundException extends ContainerException implements
     NotFoundExceptionInterface
 {
