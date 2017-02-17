@@ -1,7 +1,5 @@
 <?php
 /**
- * Container class file.
- *
  * @package   Atan\Dependency
  * @author    atanvarno69 <https://github.com/atanvarno69>
  * @copyright 2017 atanvarno.com
@@ -22,7 +20,7 @@ use Atan\Dependency\Exception\{
 };
 
 /**
- * Class Container
+ * Atan\Dependency\Container
  *
  * A basic container implementing PSR-11 `ContainerInterface`.
  *
