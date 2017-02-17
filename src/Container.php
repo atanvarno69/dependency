@@ -88,10 +88,16 @@ class Container implements ArrayAccess, ContainerInterface
      * @param string $className     The name of the defined class.
      * @param mixed  ...$parameters Constructor parameters.
      *
+     * @throws InvalidArgumentException Class name does not exist.
+     *
      * @return Definition
      */
     public function class(string $className, ...$parameters): Definition
     {
+        if (!class_exists($className)) {
+            $msg = "A class named '$className' does not exist";
+            throw new InvalidArgumentException($msg);
+        }
         return new Definition(true, $className, $parameters);
     }
 
@@ -131,10 +137,16 @@ class Container implements ArrayAccess, ContainerInterface
      * @param string $className     The name of the defined class.
      * @param mixed  ...$parameters Constructor parameters.
      *
+     * @throws InvalidArgumentException Class name does not exist.
+     *
      * @return Definition
      */
     public function factory(string $className, ...$parameters): Definition
     {
+        if (!class_exists($className)) {
+            $msg = "A class named '$className' does not exist";
+            throw new InvalidArgumentException($msg);
+        }
         return new Definition(false, $className, $parameters);
     }
 
