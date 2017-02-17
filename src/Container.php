@@ -79,6 +79,21 @@ class Container implements ArrayAccess, ContainerInterface
     {
         $this->registry[$id] = $value;
     }
+    
+    /**
+     * Adds a registered class definition for lazy loading.
+     *
+     * @api
+     *
+     * @param string $className     The name of the defined class.
+     * @param mixed  ...$parameters Constructor parameters.
+     *
+     * @return Definition
+     */
+    public function class(string $className, ...$parameters): Definition
+    {
+        return new Definition(true, $className, $parameters);
+    }
 
     /**
      * Deletes an entry from the container.
@@ -92,6 +107,35 @@ class Container implements ArrayAccess, ContainerInterface
     public function delete(string $id)
     {
         unset($this->registry[$id]);
+    }
+    
+    /**
+     * Use a container entry as a parameter.
+     *
+     * @api
+     *
+     * @param string $id Identifier of the entry to reference.
+     *
+     * @return EntryProxy
+     */
+    public function entry(string $id): EntryProxy
+    {
+        return new EntryProxy($id);
+    }
+
+    /**
+     * Adds an unregistered class definition for lazy loading.
+     *
+     * @api
+     *
+     * @param string $className     The name of the defined class.
+     * @param mixed  ...$parameters Constructor parameters.
+     *
+     * @return Definition
+     */
+    public function factory(string $className, ...$parameters): Definition
+    {
+        return new Definition(false, $className, $parameters);
     }
 
     /** @inheritdoc */
@@ -211,9 +255,8 @@ class Container implements ArrayAccess, ContainerInterface
             if (is_array($value)) {
                 $return[$key] = $this->resolveParams($value);
             }
-            if (is_string($value) && strpos($value, ':') === 0) {
-                $id = substr($value, 1);
-                $return[$key] = $this->has($id) ? $this->get($id) : $value;
+            if ($value instanceof EntryProxy) {
+                $return[$key] = $this->get($value);
             }
         }
         return $return;
