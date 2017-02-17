@@ -1,7 +1,5 @@
 <?php
 /**
- * ContainerException class file.
- *
  * @package   Atan\Dependency
  * @author    atanvarno69 <https://github.com/atanvarno69>
  * @copyright 2017 atanvarno.com
@@ -16,7 +14,11 @@ use Exception;
 /** PSR-11 use block. */
 use Psr\Container\ContainerExceptionInterface;
 
-/** ContainerException class */
+/**
+ * Atan\Dependency\Exception\ContainerException
+ *
+ * @internal Exception implementing `ContainerExceptionInterface`.
+ */
 class ContainerException extends Exception implements
     ContainerExceptionInterface
 {
