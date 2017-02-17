@@ -49,14 +49,10 @@ class Container implements ArrayAccess, ContainerInterface
      *
      * @api
      *
-     * @param mixed[] $entries Entries to contain.
      * @param string  $id      Identifier for the container's own entry.
      */
-    public function __construct(array $entries = [], string $id = 'container')
+    public function __construct(string $id = 'container')
     {
-        foreach ($entries as $key => $entry) {
-            $this->add($key, $entry);
-        }
         $this->add($id, $this);
     }
 
