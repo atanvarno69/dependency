@@ -10,6 +10,11 @@
 
 namespace Atan\Dependency;
 
+/**
+ * Class EntryProxy
+ *
+ * @internal For use as a proxy parameter for a container entry.
+ */
 class EntryProxy
 {
     private $id;
