@@ -9,15 +9,20 @@
 namespace Atan\Dependency;
 
 /**
- * Atan\Dependency\Definition
+ * Atan\Dependency\DefinitionTrait
  *
- * A definition for a lazy loaded `Container` entry.
- *
- * Provides a fluent interface to define multiple post-instantiation method
- * calls.
+ * @internal For use implementing `Definition`.
  */
-interface Definition
+trait DefinitionTrait
 {
+    /**
+     * @var mixed   $cargo      Definition cargo class name or callable.
+     * @var mixed[] $methods    Methods to call after instantiation.
+     * @var mixed[] $parameters Constructor parameters for defined class.
+     * @var bool    $register   Whether an instance should be registered.
+     */
+    private $cargo, $methods, $parameters, $register;
+
     /**
      * Get the definition cargo.
      *
@@ -25,7 +30,10 @@ interface Definition
      *
      * @return callable|string Definition callable or class name.
      */
-    public function getCargo();
+    public function getCargo()
+    {
+        return $this->cargo;
+    }
 
     /**
      * Get the methods to call on the object after instantiation.
@@ -34,7 +42,10 @@ interface Definition
      *
      * @return array Parameters.
      */
-    public function getMethods(): array;
+    public function getMethods(): array
+    {
+        return $this->methods;
+    }
 
     /**
      * Get the parameters to pass.
@@ -43,7 +54,10 @@ interface Definition
      *
      * @return array Constructor parameters.
      */
-    public function getParameters(): array;
+    public function getParameters(): array
+    {
+        return $this->parameters;
+    }
 
     /**
      * Get the registration flag.
@@ -52,7 +66,10 @@ interface Definition
      *
      * @return bool Registration flag.
      */
-    public function getRegister(): bool;
+    public function getRegister(): bool
+    {
+        return $this->register;
+    }
 
     /**
      * Adds a method to call after object instantiation.
@@ -65,5 +82,10 @@ interface Definition
      *
      * @return $this Fluent interface, allowing multiple calls to be chained.
      */
-    public function method(string $name, ...$parameters): Definition;
+    public function method(string $name, ...$parameters): Definition
+    {
+        $parameters = $parameters ?? [];
+        $this->methods[$name] = $parameters;
+        return $this;
+    }
 }

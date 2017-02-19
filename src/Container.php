@@ -9,7 +9,11 @@
 namespace Atan\Dependency;
 
 /** SPL use block. */
-use ArrayAccess, InvalidArgumentException, Throwable, TypeError;
+use ArrayAccess,
+    InvalidArgumentException,
+    Throwable,
+    TypeError,
+    UnexpectedValueException;
 
 /** PSR-11 use block. */
 use Psr\Container\ContainerInterface;
@@ -78,39 +82,38 @@ class Container implements ArrayAccess, ContainerInterface
      * @param string $id    Identifier of the entry to set.
      * @param mixed  $value Value of the entry to set.
      *
-     * @return void
+     * @return $this Fluent interface, allowing multiple calls to be chained.
      */
-    public function add(string $id, $value)
+    public function add(string $id, $value): Container
     {
         $this->registry[$id] = $value;
+        return $this;
     }
     
     /**
-     * Adds a registered class definition for lazy loading.
+     * Adds a class definition for lazy loading.
      *
      * After first instantiation, the same instance will be returned by `get()`
-     * on each call. If this is not the desired behaviour, you should use
-     * `factory()`.
+     * on each call. If this is not the desired behaviour, you should set the
+     * third parameter to `false`.
      *
      * @api
      *
-     * @param string $className     The name of the defined class. Using the
+     * @param string $className  The name of the defined class. Using the
      *      `::class` keyword is recommended.
-     * @param mixed  ...$parameters Values to pass to the defined class's
-     *      constructor. To use an entry defined in the container, use
-     *      `entry()`.
+     * @param array  $parameters Values to pass to the class constructor.
+     * @param bool   $register   Whether the entry should be registered.
      *
      * @throws InvalidArgumentException The given class name does not exist.
      *
      * @return Definition
      */
-    public function class(string $className, ...$parameters): Definition
-    {
-        if (!class_exists($className)) {
-            $msg = "A class named '$className' does not exist";
-            throw new InvalidArgumentException($msg);
-        }
-        return new Definition(true, $className, $parameters);
+    public function define(
+        string $className,
+        array $parameters = [],
+        bool $register = true
+    ): Definition {
+        return new ClassDefinition($register, $className, ...$parameters);
     }
 
     /**
@@ -120,11 +123,12 @@ class Container implements ArrayAccess, ContainerInterface
      *
      * @param string $id Identifier of the entry to delete.
      *
-     * @return void
+     * @return $this Fluent interface, allowing multiple calls to be chained.
      */
-    public function delete(string $id)
+    public function delete(string $id): Container
     {
         unset($this->registry[$id]);
+        return $this;
     }
     
     /**
@@ -144,30 +148,28 @@ class Container implements ArrayAccess, ContainerInterface
     }
 
     /**
-     * Adds an unregistered class definition for lazy loading.
+     * Adds a factory callable for lazy loading.
      *
-     * A new instance will be returned by `get()` on each call. If this is
-     * not the desired behaviour, you should use `class()`.
+     * After first instantiation, the same instance will be returned by `get()`
+     * on each call. If this is not the desired behaviour, you should set the
+     * third parameter to `false`.
      *
      * @api
      *
-     * @param string $className     The name of the defined class. Using the
-     *      `::class` keyword is recommended.
-     * @param mixed  ...$parameters Values to pass to the defined class's
-     *      constructor. To use an entry defined in the container, use
-     *      `entry()`.
+     * @param callable $callable   The factory callable to use.
+     * @param array    $parameters Values to pass to the given callable.
+     * @param bool     $register   Whether the entry should be registered.
      *
      * @throws InvalidArgumentException The given class name does not exist.
      *
      * @return Definition
      */
-    public function factory(string $className, ...$parameters): Definition
-    {
-        if (!class_exists($className)) {
-            $msg = "A class named '$className' does not exist";
-            throw new InvalidArgumentException($msg);
-        }
-        return new Definition(false, $className, $parameters);
+    public function factory(
+        callable $callable,
+        array $parameters = [],
+        bool $register = true
+    ): Definition {
+        return new FactoryDefinition($register, $callable, ...$parameters);
     }
 
     /** @inheritdoc */
@@ -180,7 +182,7 @@ class Container implements ArrayAccess, ContainerInterface
             throw new NotFoundException("$id not found");
         }
         $entry = $this->registry[$id];
-        if (!$entry instanceof Definition) {
+        if (!$entry instanceof ClassDefinition) {
             return $entry;
         }
         try {
@@ -268,9 +270,15 @@ class Container implements ArrayAccess, ContainerInterface
 
     private function build(Definition $definition)
     {
-        $name = $definition->getClassName();
         $params = $this->resolveParams($definition->getParameters());
-        $object = new $name(...$params);
+        $cargo = $definition->getCargo();
+        $object = ($definition instanceof ClassDefinition)
+            ? new $cargo(...$params)
+            : call_user_func($definition->getCargo(), ...$params);
+        if (!is_object($object)) {
+            $msg = 'No object returned from callable';
+            throw new UnexpectedValueException($msg);
+        }
         $methods = $definition->getMethods();
         foreach ($methods as $method => $params) {
             $params = $this->resolveParams($params);
