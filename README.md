@@ -22,8 +22,6 @@ Add the following to your `composer.json` file:
 Then:
 ```bash
 $ composer install
-# or
-$ composer update
 ```
 
 ## Basic Usage
@@ -41,24 +39,25 @@ $container->add('ID', $someEntry);
 // Get an entry
 $entry = $container->get('ID');
 
-// To define a class to be lazy loaded, use the `Definition` class:
-$container->add('Lazy', new Definition(SomeClass::class));
-
-// Define a lazy loaded class with values to be passed to its constructor:
-$container->add('Lazy',
-    new Definition(SomeClass::class, [1, 'two', [3, 'is', 'an', 'array'], null])
+// To define a class to be lazy loaded, use the `class()` method:
+$container->add(
+    'Lazy', $container->class(ClassName::class, ...$constructorParameters)
 );
 
-// Use a container ID string prefixed with ':' to pass a container entry as a parameter:
-$container->add('param2', 2);
-$container->add('Lazy', new Definition(SomeClass::class, [1, ':param2']));
+// To pass a container entry as a constructor parameter use the `entry()` method:
+$container->add('parameter', $value);
+$container->add(
+    'Lazy', $container->class(ClassName::class, $container->entry('parameter'))
+);
 
-// By default the same entry for a lazy loaded class is always returned after it
-// has been created the first time. You can instead return a new instance on
-// each call by passing `false` as the third parameter to the definition:
-$container->add('Lazy', new Definition(SomeClass::class, [], false));
+// The same entry for a lazy loaded class is always returned after it has been
+// created the first time. You can instead return a new instance on each `get()` 
+// call by using `factory()` instead of `class()`:
+$container->add(
+    'Lazy', $container->factory(ClassName::class, ...$constructorParameters)
+);
 
-// Check the container has an entry for a given identifier:
+// Check the container has an entry for a given identifier using `has()`:
 $item = $container->has('ID') ? $container->get('ID') : 'Not set';
 
 // Delete an entry from the container:
