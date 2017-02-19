@@ -1,13 +1,13 @@
 # Atan\Dependency\Definition
 A definition for a lazy loaded [`Container`](Container.md) entry.
 ```php
-class Definition
+interface Definition
 {
     // Methods
     public function method(string $name, array $parameters = []): Definition
 }
 ```
-Provides a [fluent interface](https://en.wikipedia.org/wiki/Fluent_interface) to define a class.
+Provides a [fluent interface](https://en.wikipedia.org/wiki/Fluent_interface) to define multiple post-instantiation method calls.
 
 * [method](#method)
 
@@ -23,8 +23,7 @@ method(string $name, array $parameters = []): Definition
 
 * `array` **$parameters**
 
-  Optional. Defaults to `[]`. Parameters to pass to the method. To use an 
-  entry defined in the container, use [`Container::entry()`](Container.md#entry).
+  Optional. Defaults to `[]`. Parameters to pass to the method. To use an entry defined in the container, use [`Container::entry()`](Container.md#entry).
 
 ### Throws
 Nothing is thrown.

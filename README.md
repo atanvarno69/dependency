@@ -39,20 +39,20 @@ $container->add('ID', $someEntry);
 // Get an entry
 $entry = $container->get('ID');
 
-// To define a class to be lazy loaded, use the `class()` method:
+// To define a class to be lazy loaded, use the `define()` method:
 $container->add(
-    'Lazy', $container->class(ClassName::class, ...$constructorParameters)
+    'Lazy', $container->define(ClassName::class, ...$constructorParameters)
 );
 
 // To pass a container entry as a constructor parameter use the `entry()` method:
 $container->add('parameter', $value);
 $container->add(
-    'Lazy', $container->class(ClassName::class, $container->entry('parameter'))
+    'Lazy', $container->define(ClassName::class, $container->entry('parameter'))
 );
 
 // The same entry for a lazy loaded class is always returned after it has been
 // created the first time. You can instead return a new instance on each `get()` 
-// call by using `factory()` instead of `class()`:
+// call by using `factory()` instead of `define()`:
 $container->add(
     'Lazy', $container->factory(ClassName::class, ...$constructorParameters)
 );

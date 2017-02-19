@@ -5,18 +5,18 @@ class Container implements ArrayAccess, ContainerInterface
 {
     // Methods
     public function __construct(string $id = 'container')
-    public function add(string $id, mixed $value): void
-    public function class(string $className, ...$parameters): Definition
-    public function delete(string $id): void
+    public function add(string $id, mixed $value): Container
+    public function define(string $className, array $parameters, bool $register = true): Definition
+    public function delete(string $id): Container
     public function entry(string $id): EntryProxy
     public function factory(string $className, ...$parameters): Definition
-    public function get(string $id)
+    public function get(string $id): mixed
     public function has(string $id): bool
 }
 ```
 The container may contain and return any PHP type. These container entries are associated with a unique user-defined `string` identifier. All entries, except those defined with [`factory()`](#factory), are registered, that is a call to [`get()`](#get) with the identifier will always return the same value.
 
-Entries can be defined using the [`add()`](#add) method. Lazy loaded classes are defined using [`class()`](#class) (for registered classes) or [`factory()`](#factory) (for unregistered classes).
+Entries can be defined using the [`add()`](#add) method. Lazy loaded classes are defined using [`define()`](#define) (for registered classes) or [`factory()`] (#factory) (for unregistered classes).
 
 As `Container` implements [`ArrayAccess`](http://php.net/manual/en/class.arrayaccess.php), it can be used with array syntax:
 ```php
@@ -30,7 +30,7 @@ Note that unlike a normal array, only `string` identifiers will be accepted by t
 
 * [__construct](#__construct)
 * [add](#add)
-* [class](#class)
+* [define](#define)
 * [delete](#delete)
 * [entry](#entry)
 * [factory](#factory)
@@ -55,9 +55,9 @@ A `Container` instance.
 ## add
 Adds an entry to the container.
 ```php
-add(string $id, mixed $value): void
+add(string $id, mixed $value): Container
 ```
-An entry can be of any type. To define a lazy loaded class, use [`class()`](#class) or [`factory()`](#factory).
+An entry can be of any type. To define a lazy loaded class, use [`define()`](#define) or [`factory()`](#factory).
 
 ### Parameters
 * `string` **$id**
@@ -72,15 +72,16 @@ An entry can be of any type. To define a lazy loaded class, use [`class()`](#cla
 Nothing is thrown.
 
 ### Returns
-* `void`
+* `Definition` **$this**
 
-## class
-Adds a registered class definition for lazy loading.
+  [fluent interface](https://en.wikipedia.org/wiki/Fluent_interface), allowing multiple calls to be chained.
+
+## define
+Adds a class definition for lazy loading.
 ```php
-class(string $className, mixed ...$parameters): Definition
+define(string $className, array $parameters, bool $register = true): Definition
 ```
-After first instantiation, the same instance will be returned by [`get()`](#get) on each call. If this is not the desired behaviour, you should use [`factory()`](#factory).
-
+After first instantiation, the same instance will be returned by `get()` on each call. If this is not the desired behaviour, you should set the third parameter to `false`.
 ### Parameters
 * `string` **$className**
 
@@ -88,7 +89,11 @@ After first instantiation, the same instance will be returned by [`get()`](#get)
 
 * `mixed` **...$parameters**
 
-  Values to pass to the defined class's constructor. To use an entry defined in the container, use [`entry()`](#entry).
+  Optional. Defaults to `[]`. Values to pass to the class constructor.
+
+* `bool` **$register**
+
+  Optional. Defaults to `true`. Whether the entry should be registered.
 
 ### Throws
 * `InvalidArgumentException`
@@ -101,7 +106,7 @@ After first instantiation, the same instance will be returned by [`get()`](#get)
 ## delete
 Deletes an entry from the container.
 ```php
-delete(string $id): void
+delete(string $id): Container
 ```
 ### Parameters
 * `string` **$id**
@@ -112,7 +117,9 @@ delete(string $id): void
 Nothing is thrown.
 
 ### Returns
-* `void`
+* `Definition` **$this**
+
+  [fluent interface](https://en.wikipedia.org/wiki/Fluent_interface), allowing multiple calls to be chained.
 
 ## entry
 Use a container entry as a parameter for a lazy loading definition.
@@ -133,11 +140,11 @@ Nothing is thrown.
   When an `EntryProxy` is encountered in a parameter list while resolving a definition it is replaced with the container entry with the given identifier.
 
 ## factory
-Adds a registered class definition for lazy loading.
+Adds a factory callable for lazy loading.
 ```php
-class(string $className, mixed ...$parameters): Definition
+factory(callable $callable, array $parameters = [], $register = true): Definition
 ```
-A new instance will be returned by [`get()`](#get) on each call. If this is not the desired behaviour, you should use [`class()`](#class).
+After first instantiation, the same instance will be returned by `get()` on each call. If this is not the desired behaviour, you should set the third parameter to `false`.
 
 ### Parameters
 * `string` **$className**
@@ -146,12 +153,14 @@ A new instance will be returned by [`get()`](#get) on each call. If this is not 
 
 * `mixed` **...$parameters**
 
-  Values to pass to the defined class's constructor. To use an entry defined in the container, use [`entry()`](#entry).
+  Optional. Defaults to `[]`. Values to pass to the class constructor.
+
+* `bool` **$register**
+
+  Optional. Defaults to `true`. Whether the entry should be registered.
 
 ### Throws
-* `InvalidArgumentException`
-
-  The given class name does not exist.
+Nothing is thrown.
 
 ### Returns
 * [`Definition`](Definition.md)
