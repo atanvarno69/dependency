@@ -9,7 +9,7 @@
 namespace Atan\Dependency;
 
 /** SPL use block. */
-use ArrayAccess, Throwable, TypeError;
+use ArrayAccess, InvalidArgumentException, Throwable, TypeError;
 
 /** PSR-11 use block. */
 use Psr\Container\ContainerInterface;
@@ -25,19 +25,30 @@ use Atan\Dependency\Exception\{
  * A basic container implementing PSR-11 `ContainerInterface`.
  *
  * The container may contain and return any PHP type. These container entries
- * are associated with a unique user-defined `string` identifier. All entries,
- * except those defined with the `factory()` method, are registered, that is a
+ * are associated with a unique user-defined `string` identifier. All
+ * entries, except those defined with `factory()`, are registered, that is a
  * call to `get()` with the identifier will always return the same value.
  *
- * To define a class to be lazy loaded, use one of the `class()` or `factory()`
- * methods. For other entries, use the `add()` method.
+ * Entries can be defined using the `add()` method. Lazy loaded classes are
+ * defined using `class()` (for registered classes) or `factory()` (for
+ * unregistered classes).
  *
- * Entries can be accessed using the methods defined in `ContainerInterface` or
- * using array syntax.
+ * As `Container` implements `ArrayAccess`, it can be used with array syntax:
+ * ```
+ * # Array syntax              # Alias of
+ * $container['ID'] = $value;  $container->add('ID', $value);
+ * $item = $container['ID'];   $item = $container->get('ID');
+ * isset($container['ID']);    $container->has('ID');
+ * unset($container['ID']);    $container->delete('ID');
+ * ```
+ *
+ * Note that unlike a normal array, only `string` identifiers will be accepted
+ * by the array syntax (as PSR-11 only permits `string` identifiers); using
+ * `int` (or other) identifier types with array syntax will silently fail.
  */
 class Container implements ArrayAccess, ContainerInterface
 {
-    /** @var mixed[] $registry */
+    /** @var mixed[] $registry Container entries indexed by identifiers. */
     private $registry;
 
     /**
@@ -59,8 +70,8 @@ class Container implements ArrayAccess, ContainerInterface
     /**
      * Adds an entry to the container.
      *
-     * An entry can be of any type. To define a lazy loaded class, give an
-     * instance of the `Definition` class.
+     * An entry can be of any type. To define a lazy loaded class, use `class()`
+     * or `factory()`.
      *
      * @api
      *
@@ -77,12 +88,19 @@ class Container implements ArrayAccess, ContainerInterface
     /**
      * Adds a registered class definition for lazy loading.
      *
+     * After first instantiation, the same instance will be returned by `get()`
+     * on each call. If this is not the desired behaviour, you should use
+     * `factory()`.
+     *
      * @api
      *
-     * @param string $className     The name of the defined class.
-     * @param mixed  ...$parameters Constructor parameters.
+     * @param string $className     The name of the defined class. Using the
+     *      `::class` keyword is recommended.
+     * @param mixed  ...$parameters Values to pass to the defined class's
+     *      constructor. To use an entry defined in the container, use
+     *      `entry()`.
      *
-     * @throws InvalidArgumentException Class name does not exist.
+     * @throws InvalidArgumentException The given class name does not exist.
      *
      * @return Definition
      */
@@ -110,13 +128,15 @@ class Container implements ArrayAccess, ContainerInterface
     }
     
     /**
-     * Use a container entry as a parameter.
+     * Use a container entry as a parameter for a lazy loading definition.
      *
      * @api
      *
      * @param string $id Identifier of the entry to reference.
      *
-     * @return EntryProxy
+     * @return EntryProxy When an `EntryProxy` is encountered in a parameter
+     *      list while resolving a definition it is replaced with the container
+     *      entry with the given identifier.
      */
     public function entry(string $id): EntryProxy
     {
@@ -126,12 +146,18 @@ class Container implements ArrayAccess, ContainerInterface
     /**
      * Adds an unregistered class definition for lazy loading.
      *
+     * A new instance will be returned by `get()` on each call. If this is
+     * not the desired behaviour, you should use `class()`.
+     *
      * @api
      *
-     * @param string $className     The name of the defined class.
-     * @param mixed  ...$parameters Constructor parameters.
+     * @param string $className     The name of the defined class. Using the
+     *      `::class` keyword is recommended.
+     * @param mixed  ...$parameters Values to pass to the defined class's
+     *      constructor. To use an entry defined in the container, use
+     *      `entry()`.
      *
-     * @throws InvalidArgumentException Class name does not exist.
+     * @throws InvalidArgumentException The given class name does not exist.
      *
      * @return Definition
      */

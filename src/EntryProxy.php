@@ -15,13 +15,22 @@ namespace Atan\Dependency;
  */
 class EntryProxy
 {
+    /** @var string $id Identifier of the proxy entry. */
     private $id;
-    
+
+    /**
+     * EntryProxy constructor.
+     *
+     * @param string $id Identifier of the proxy entry.
+     */
     public function __construct(string $id)
     {
         $this->id = $id;
     }
-    
+
+    /**
+     * @return string Identifier of the proxy entry.
+     */
     public function __toString(): string
     {
         return $this->id;

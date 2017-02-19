@@ -8,9 +8,6 @@
 
 namespace Atan\Dependency;
 
-/** SPL use block. */
-use InvalidArgumentException;
-
 /**
  * Atan\Dependency\Definition
  *
@@ -100,14 +97,15 @@ class Definition
     }
 
     /**
-     * Add a method to call after class instantiation.
+     * Adds a method to call after class instantiation.
      *
      * @api
      *
      * @param string $name       Method name to call.
-     * @param array  $parameters Parameters to pass to the method.
+     * @param array  $parameters Parameters to pass to the method. To use an
+     *      entry defined in the container, use `Container::entry()`.
      *
-     * @return $this Fluent interface.
+     * @return $this Fluent interface, allowing multiple calls to be chained.
      */
     public function method(string $name, ...$parameters): Definition
     {
