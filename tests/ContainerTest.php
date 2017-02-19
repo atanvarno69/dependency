@@ -1,7 +1,5 @@
 <?php
 /**
- * ContainerTest class file.
- *
  * @package   Atan\Dependency
  * @author    atanvarno69 <https://github.com/atanvarno69>
  * @copyright 2017 atanvarno.com
@@ -23,244 +21,211 @@ use Psr\Container\{
 
 /** Package use block. */
 use Atan\Dependency\{
-    Container, Definition
+    Container, ClassDefinition, EntryProxy, FactoryDefinition
 };
 
 class ContainerTest extends TestCase
 {
-    public function testConstructorDefaults()
+    /**
+     * @var callable $callable
+     * @var Container $container
+     */
+    private $callable, $container;
+
+    public function setUp()
     {
-        $container = new Container();
-        $expected = ['container' => $container];
-        $this->assertInstanceOf(ContainerInterface::class, $container);
-        $this->assertAttributeEquals($expected, 'registry', $container);
+        $this->callable = function (...$params) {
+            return new Container(...$params);
+        };
+        $this->container = new Container();
     }
 
-    public function testConstructorWithEntries()
+    public function testConstructorDefaults()
     {
-        $container = new Container([
-            'one' => 1,
-            'two' => 'two',
-            'three' => [3]
-        ]);
-        $expected = [
-            'one' => 1,
-            'two' => 'two',
-            'three' => [3],
-            'container' => $container
-        ];
-        $this->assertAttributeEquals($expected, 'registry', $container);
+        $expected = ['container' => $this->container];
+        $this->assertInstanceOf(ContainerInterface::class, $this->container);
+        $this->assertAttributeEquals($expected, 'registry', $this->container);
     }
 
     public function testConstructorWithContainerName()
     {
-        $container = new Container([], 'name');
+        $container = new Container('name');
         $expected = ['name' => $container];
         $this->assertAttributeEquals($expected, 'registry', $container);
     }
 
     public function testAdd()
     {
-        $container = new Container();
-        $container->add('test', 'value');
-        $this->assertAttributeEquals(
-            ['container' => $container, 'test' => 'value'],
-            'registry',
-            $container
-        );
+        $result = $this->container->add('one', 1)->add('two', 2);
+        $expected = ['container' => $this->container, 'one' => 1, 'two' => 2];
+        $this->assertAttributeEquals($expected, 'registry', $this->container);
+        $this->assertSame($this->container, $result);
+    }
+
+    public function testDefineDefaults()
+    {
+        $result = $this->container->define(Container::class);
+        $this->assertInstanceOf(ClassDefinition::class, $result);
+        $this->assertSame(Container::class, $result->getCargo());
+        $this->assertSame([], $result->getMethods());
+        $this->assertSame([], $result->getParameters());
+        $this->assertTrue($result->getRegister());
+    }
+
+    public function testDefineWithParameters()
+    {
+        $result = $this->container->define(Container::class, ['name']);
+        $this->assertSame(['name'], $result->getParameters());
+    }
+
+    public function testDefineWithFalseRegister()
+    {
+        $result = $this->container->define(Container::class, [], false);
+        $this->assertFalse($result->getRegister());
     }
 
     public function testDelete()
     {
-        $container = new Container([
-            'one' => 1,
-            'two' => 'two',
-            'three' => [3]
-        ]);
+        $result = $this->container->add('one', 1)->add('two', 2)->delete('one');
         $expected = [
-            'one' => 1,
-            'three' => [3],
-            'container' => $container
+            'two' => 2,
+            'container' => $this->container
         ];
-        $container->delete('two');
-        $this->assertAttributeEquals($expected, 'registry', $container);
+        $this->assertAttributeEquals($expected, 'registry', $this->container);
+        $this->assertSame($this->container, $result);
     }
 
-    public function testGetThrowsTypeErrorForNonStringParam()
+    public function testEntry()
     {
-        $container = new Container();
-        $this->expectException(TypeError::class);
-        $container->get(1);
+        $result = $this->container->entry('container');
+        $this->assertInstanceOf(EntryProxy::class, $result);
+        $this->assertSame('container', (string) $result);
     }
 
-    public function testGetThrowsNotFoundExceptionForNotSetId()
+    public function testFactoryDefaults()
     {
-        $container = new Container();
-        $this->expectException(NotFoundExceptionInterface::class);
-        $container->get('not set');
+        $result = $this->container->factory($this->callable);
+        $this->assertInstanceOf(FactoryDefinition::class, $result);
+        $this->assertSame($this->callable, $result->getCargo());
+        $this->assertSame([], $result->getMethods());
+        $this->assertSame([], $result->getParameters());
+        $this->assertTrue($result->getRegister());
     }
 
-    public function testGetReturnsValueForValidId()
+    public function testFactoryWithParameters()
     {
-        $container = new Container();
-        $result = $container->get('container');
-        $this->assertSame($container, $result);
+        $result = $this->container->factory($this->callable, ['name']);
+        $this->assertSame(['name'], $result->getParameters());
     }
 
-    public function testGetReturnsInstanceFromDefinition()
+    public function testFactoryWithFalseRegister()
     {
-        $container = new Container([
-            'testCase' => new Definition(Container::class)
-        ]);
-        $result = $container->get('testCase');
-        $this->assertInstanceOf(Container::class, $result);
+        $result = $this->container->factory($this->callable, [], false);
+        $this->assertFalse($result->getRegister());
     }
 
-    public function testGetResolvesPostInstantiateMethods()
-    {
-        $definition = (new Definition(Container::class))
-            ->method('add', ['id', 'value']);
-        $container = new Container(['testCase' => $definition]);
-        $result = $container->get('testCase');
-        $expected = [
-            'container' => $result,
-            'id' => 'value',
-        ];
-        $this->assertAttributeEquals($expected, 'registry', $result);
-    }
-
-    public function testGetResolvesConstructorParamsFromContainer()
-    {
-        $definition = (new Definition(Container::class))
-            ->parameter(['testEntry' => ':parentEntry']);
-        $container = new Container([
-            'testCase' => $definition,
-            'parentEntry' => 5,
-        ]);
-        $result = $container->get('testCase');
-        $expected = [
-            'container' => $result,
-            'testEntry' => 5
-        ];
-        $this->assertAttributeEquals($expected, 'registry', $result);
-    }
-
-    public function testGetThrowsContainerExceptionWhenBuildThrowsThrowable()
-    {
-        $definition = (new Definition(Container::class))
-            ->method('get', [1]);
-        $container = new Container(['id' => $definition]);
-        $this->expectException(ContainerExceptionInterface::class);
-        $container->get('id');
-    }
+    // todo: tests for get method
 
     public function testHasThrowsTypeErrorForNonStringParam()
     {
-        $container = new Container();
         $this->expectException(TypeError::class);
-        $container->has(1);
+        $this->container->has(1);
     }
 
     public function testHasReportsTrueForValidEntry()
     {
-        $container = new Container(['entry' => 'value']);
-        $this->assertTrue($container->has('entry'));
+        $this->container->add('entry', 'value');
+        $this->assertTrue($this->container->has('entry'));
     }
 
     public function testHasReportsFalseForInvalidEntry()
     {
-        $container = new Container();
-        $this->assertFalse($container->has('entry'));
+        $this->assertFalse($this->container->has('entry'));
     }
 
     public function testOffsetExistsReportsFalseForNonString()
     {
-        $container = new Container(['1' => 'value']);
-        $this->assertFalse(isset($container[1]));
+        $this->container[1] = 'value';
+        $this->assertFalse(isset($this->container[1]));
     }
 
     public function testOffsetExistsReportsTrueForValidEntry()
     {
-        $container = new Container();
-        $this->assertTrue(isset($container['container']));
+        $this->assertTrue(isset($this->container['container']));
     }
 
     public function testOffsetExistsReportsFalseForVInvalidEntry()
     {
-        $container = new Container();
-        $this->assertFalse(isset($container['not set']));
+        $this->assertFalse(isset($this->container['not set']));
     }
 
     public function testOffsetGetReturnsNullForNonString()
     {
-        $container = new Container(['1' => 'value']);
-        $this->assertNull($container[1]);
+        $this->container[1] = 'value';
+        $this->assertNull($this->container[1]);
     }
 
     public function testOffsetGetReturnsValidEntry()
     {
-        $container = new Container(['entry' => 'value']);
-        $this->assertSame('value', $container['entry']);
+        $this->container['entry'] = 'value';
+        $this->assertSame('value', $this->container['entry']);
     }
 
     public function testOffsetGetReturnsNullForInvalidEntry()
     {
-        $container = new Container();
-        $this->assertNull($container['entry']);
+        $this->assertNull($this->container['entry']);
     }
 
     public function testOffsetSetDoesNothingForNonStringId()
     {
-        $container = new Container();
-        $container[1] = 'value';
+        $this->container[1] = 'value';
         $this->assertAttributeEquals(
-            ['container' => $container],
+            ['container' => $this->container],
             'registry',
-            $container
+            $this->container
         );
     }
 
     public function testOffsetSetSetsValueWithStringId()
     {
-        $container = new Container();
-        $container['entry'] = 'value';
+        $this->container['entry'] = 'value';
         $this->assertAttributeEquals(
-            ['container' => $container, 'entry' => 'value'],
+            ['container' => $this->container, 'entry' => 'value'],
             'registry',
-            $container
+            $this->container
         );
     }
 
     public function testOffsetUnsetDoesNothingForNonStringId()
     {
-        $container = new Container(['1' => 'value']);
-        unset($container[1]);
+        $this->container['entry'] = 'value';
+        unset($this->container[1]);
         $this->assertAttributeEquals(
-            ['container' => $container, 1 => 'value'],
+            ['container' => $this->container, 'entry' => 'value'],
             'registry',
-            $container
+            $this->container
         );
     }
 
     public function testOffsetUnsetDoesNothingForNotSetId()
     {
-        $container = new Container(['entry' => 'value']);
-        unset($container['not set']);
+        $this->container['entry'] = 'value';
+        unset($this->container['not set']);
         $this->assertAttributeEquals(
-            ['container' => $container, 'entry' => 'value'],
+            ['container' => $this->container, 'entry' => 'value'],
             'registry',
-            $container
+            $this->container
         );
     }
 
     public function testOffsetUnsetDeletesValueForStringId()
     {
-        $container = new Container(['entry' => 'value']);
-        unset($container['entry']);
+        $this->container['entry'] = 'value';
+        unset($this->container['entry']);
         $this->assertAttributeEquals(
-            ['container' => $container],
+            ['container' => $this->container],
             'registry',
-            $container
+            $this->container
         );
     }
 }

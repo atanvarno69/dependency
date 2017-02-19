@@ -1,7 +1,5 @@
 <?php
 /**
- * NotFoundExceptionTest class file.
- *
  * @package   Atan\Dependency
  * @author    atanvarno69 <https://github.com/atanvarno69>
  * @copyright 2017 atanvarno.com
