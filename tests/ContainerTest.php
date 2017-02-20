@@ -26,11 +26,11 @@ use Atan\Dependency\{
 
 class ContainerTest extends TestCase
 {
-    /**
-     * @var callable $callable
-     * @var Container $container
-     */
-    private $callable, $container;
+    /** @var callable $callable */
+    private $callable;
+
+    /** @var Container $container */
+    private $container;
 
     public function setUp()
     {
@@ -124,7 +124,231 @@ class ContainerTest extends TestCase
         $this->assertFalse($result->getRegister());
     }
 
-    // todo: tests for get method
+    public function testGetWithValidEntry()
+    {
+        $this->container->add('ID', 'value');
+        $result = $this->container->get('ID');
+        $this->assertSame('value', $result);
+    }
+
+    public function testGetFromClassDefinition()
+    {
+        $this->container->add('ID', $this->container->define(Container::class));
+        $result = $this->container->get('ID');
+        $this->assertInstanceOf(Container::class, $result);
+    }
+
+    public function testGetFromFactoryDefinition()
+    {
+        $this->container->add('ID', $this->container->factory($this->callable));
+        $result = $this->container->get('ID');
+        $this->assertInstanceOf(Container::class, $result);
+    }
+
+    public function testGetFromClassDefinitionWithParameters()
+    {
+        $this->container->add('ID', $this->container->define(
+            Container::class,
+            ['name']
+        ));
+        $result = $this->container->get('ID');
+        $this->assertSame($result, $result->get('name'));
+    }
+
+    public function testGetFromFactoryDefinitionWithParameters()
+    {
+        $this->container->add('ID', $this->container->factory(
+            $this->callable,
+            ['name']
+        ));
+        $result = $this->container->get('ID');
+        $this->assertSame($result, $result->get('name'));
+    }
+
+    public function testGetFromClassDefinitionWithParametersFromContainer()
+    {
+        $this->container->add('name', 'testName');
+        $this->container->add('ID', $this->container->define(
+            Container::class,
+            [$this->container->entry('name')]
+        ));
+        $result = $this->container->get('ID');
+        $this->assertSame($result, $result->get('testName'));
+    }
+
+    public function testGetFromFactoryDefinitionWithParametersFromContainer()
+    {
+        $this->container->add('name', 'testName');
+        $this->container->add('ID', $this->container->factory(
+            $this->callable,
+            [$this->container->entry('name')]
+        ));
+        $result = $this->container->get('ID');
+        $this->assertSame($result, $result->get('testName'));
+    }
+
+    public function testGetFromClassDefinitionRecursivelyBuildsArrayParameters()
+    {
+        $this->container->add('name', 'testName');
+        $this->container->add('ID', $this->container->define(
+            Container::class,
+            [$this->container->entry('name')]
+        ));
+        $result = $this->container->get('ID');
+        $this->assertSame($result, $result->get('testName'));
+    }
+
+    public function testGetFromClassDefinitionWithMethods()
+    {
+        $this->container->add('name', 'testName');
+        $this->container->add(
+            'ID', $this->container->define(Container::class)
+                ->method('add', 'result', $this->container->entry('name'))
+        );
+        $result = $this->container->get('ID');
+        $this->assertSame('testName', $result->get('result'));
+    }
+
+    public function testGetFromFactoryDefinitionWithMethods()
+    {
+        $this->container->add('name', 'testName');
+        $this->container->add(
+            'ID', $this->container->factory($this->callable)
+            ->method('add', 'result', $this->container->entry('name'))
+        );
+        $result = $this->container->get('ID');
+        $this->assertSame('testName', $result->get('result'));
+    }
+
+    public function testGetFromClassDefinitionRecursivelyResolvesArrayParams()
+    {
+        $this->container->add('name', 'testName');
+        $this->container->add(
+            'ID',
+            $this->container->define(Container::class)
+                ->method(
+                    'add',
+                    'result',
+                    ['normalName', $this->container->entry('name')]
+                )
+        );
+        $result = $this->container->get('ID');
+        $this->assertSame(['normalName', 'testName'], $result->get('result'));
+    }
+
+    public function testGetFromFactoryDefinitionRecursivelyResolvesArrayParams()
+    {
+        $this->container->add('name', 'testName');
+        $this->container->add(
+            'ID',
+            $this->container->factory($this->callable)
+                ->method(
+                    'add',
+                    'result',
+                    ['normalName', $this->container->entry('name')]
+                )
+        );
+        $result = $this->container->get('ID');
+        $this->assertSame(['normalName', 'testName'], $result->get('result'));
+    }
+
+    public function getReturnsSameInstanceAsDefaultForClassDefinitionEntries()
+    {
+        $this->container->add('ID', $this->container->define(Container::class));
+        $result = $this->container->get('ID');
+        $result->add('test', 'value');
+        $final = $this->container->get('ID');
+        $this->assertSame($result->get('test'), $final->get('test'));
+    }
+
+    public function getReturnsSameInstanceAsDefaultForFactoryDefinitionEntries()
+    {
+        $this->container->add('ID', $this->container->factory($this->callable));
+        $result = $this->container->get('ID');
+        $result->add('test', 'value');
+        $final = $this->container->get('ID');
+        $this->assertSame($result->get('test'), $final->get('test'));
+    }
+
+    public function getReturnsSameInstanceForRegisteredClassDefinitionEntries()
+    {
+        $this->container->add(
+            'ID',
+            $this->container->define(Container::class, [], true)
+        );
+        $result = $this->container->get('ID');
+        $result->add('test', 'value');
+        $final = $this->container->get('ID');
+        $this->assertSame($result->get('test'), $final->get('test'));
+    }
+
+    public function getReturnsSameInstanceForRegisteredFactoryDefinitionEntries()
+    {
+        $this->container->add(
+            'ID',
+            $this->container->factory($this->callable, [], true)
+        );
+        $result = $this->container->get('ID');
+        $result->add('test', 'value');
+        $final = $this->container->get('ID');
+        $this->assertSame($result->get('test'), $final->get('test'));
+    }
+
+    public function getReturnsFreshInstanceForUnregisteredClassDefinitionEntries()
+    {
+        $this->container->add(
+            'ID',
+            $this->container->define(Container::class, [], false)
+        );
+        $result = $this->container->get('ID');
+        $result->add('test', 'value');
+        $final = $this->container->get('ID');
+        $this->assertFalse($final->has('test'));
+    }
+
+    public function getReturnsFreshInstanceForUnregisteredFactoryDefinitionEntries()
+    {
+        $this->container->add(
+            'ID',
+            $this->container->factory($this->callable, [], false)
+        );
+        $result = $this->container->get('ID');
+        $result->add('test', 'value');
+        $final = $this->container->get('ID');
+        $this->assertFalse($final->has('test'));
+    }
+
+    public function testGetThrowsTypeErrorForNonStringId()
+    {
+        $this->expectException(TypeError::class);
+        $this->container->get(1);
+    }
+
+    public function testGetThrowsNotFoundExceptionForNotSetId()
+    {
+        $this->expectException(NotFoundExceptionInterface::class);
+        $this->container->get('not set');
+    }
+
+    public function testGetThrowsContainerExceptionWhenExceptionBubbles()
+    {
+        $factory = function() {
+            throw new \Exception();
+        };
+        $this->container->add('ID', $this->container->factory($factory));
+        $this->expectException(ContainerExceptionInterface::class);
+        $this->container->get('ID');
+    }
+
+    public function testGetThrowsContainerExceptionWhenObjectNotProduced()
+    {
+        $factory = function() {
+            return 'not object';
+        };
+        $this->container->add('ID', $this->container->factory($factory));
+        $this->expectException(ContainerExceptionInterface::class);
+        $this->container->get('ID');
+    }
 
     public function testHasThrowsTypeErrorForNonStringParam()
     {
