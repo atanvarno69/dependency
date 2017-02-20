@@ -182,7 +182,7 @@ class Container implements ArrayAccess, ContainerInterface
             throw new NotFoundException("$id not found");
         }
         $entry = $this->registry[$id];
-        if (!$entry instanceof ClassDefinition) {
+        if (!$entry instanceof Definition) {
             return $entry;
         }
         try {
@@ -296,7 +296,7 @@ class Container implements ArrayAccess, ContainerInterface
                 $return[$key] = $this->resolveParams($value);
             }
             if ($value instanceof EntryProxy) {
-                $return[$key] = $this->get($value);
+                $return[$key] = $this->get((string) $value);
             }
         }
         return $return;
