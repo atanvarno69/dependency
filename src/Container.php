@@ -1,7 +1,5 @@
 <?php
 /**
- * Container class file
- *
  * @package   Atan\Dependency
  * @author    atanvarno69 <https://github.com/atanvarno69>
  * @copyright 2017 atanvarno.com
@@ -11,254 +9,294 @@
 namespace Atan\Dependency;
 
 /** SPL use block. */
-use BadFunctionCallException, InvalidArgumentException, Throwable;
+use ArrayAccess,
+    InvalidArgumentException,
+    Throwable,
+    TypeError,
+    UnexpectedValueException;
 
 /** PSR-11 use block. */
-use Interop\Container\ContainerInterface;
+use Psr\Container\ContainerInterface;
 
-/** Package use block */
+/** Package use block. */
 use Atan\Dependency\Exception\{
-    ContainerException,
-    NotFoundException
+    ContainerException, NotFoundException
 };
 
-class Container implements ContainerInterface
+/**
+ * Atan\Dependency\Container
+ *
+ * A basic container implementing PSR-11 `ContainerInterface`.
+ *
+ * The container may contain and return any PHP type. These container entries
+ * are associated with a unique user-defined `string` identifier. All
+ * entries, except those defined with `factory()`, are registered, that is a
+ * call to `get()` with the identifier will always return the same value.
+ *
+ * Entries can be defined using the `add()` method. Lazy loaded classes are
+ * defined using `class()` (for registered classes) or `factory()` (for
+ * unregistered classes).
+ *
+ * As `Container` implements `ArrayAccess`, it can be used with array syntax:
+ * ```
+ * # Array syntax              # Alias of
+ * $container['ID'] = $value;  $container->add('ID', $value);
+ * $item = $container['ID'];   $item = $container->get('ID');
+ * isset($container['ID']);    $container->has('ID');
+ * unset($container['ID']);    $container->delete('ID');
+ * ```
+ *
+ * Note that unlike a normal array, only `string` identifiers will be accepted
+ * by the array syntax (as PSR-11 only permits `string` identifiers); using
+ * `int` (or other) identifier types with array syntax will silently fail.
+ */
+class Container implements ArrayAccess, ContainerInterface
 {
-    /**
-     * @var ContainerInterface[] $children    Child containers.
-     * @var array                $definitions Array of entity definitions.
-     * @var ContainerInterface   $parent      Parent container.
-     * @var array                $registry    Array of shared entities.
-     */
-    protected $children, $definitions, $parent, $registry;
-    
+    /** @var mixed[] $registry Container entries indexed by identifiers. */
+    private $registry;
+
     /**
      * Container constructor.
-     * 
-     * @param array[]              $definitions Array of definition arrays.
-     * @param ContainerInterface   $parent      Parent container.
-     * @param ContainerInterface[] $children    Child containers.
      *
-     * @throws InvalidArgumentException `$definitions` is not array of arrays.
+     * Optionally accepts an array of entries.
+     *
+     * Optionally accepts an identifier for itself, defaults to 'container'.
+     *
+     * @api
+     *
+     * @param string  $id      Identifier for the container's own entry.
      */
-    public function __construct(
-        array $definitions = [],
-        ContainerInterface $parent = null,
-        array $children = []
-    ) {
-        foreach ($definitions as $id => $def) {
-            if (!is_array($def)) {
-                $msg = 'Definitions must be an array of definition arrays';
-                throw new InvalidArgumentException($msg, 500);
-            }
-            $params = $def[1] ?? [];
-            $register = $def[2] ?? true;
-            $this->define($id, $def[0], $params, $register);
-        }
-        if (isset($parent)) {
-            $this->setParent($parent);
-        }
-        foreach ($children as $child) {
-            $this->appendChild($child);
-        }
-        $this->register('Container', $this);
-    }
-    
-    /**
-     * Append a child container.
-     *
-     * @param ContainerInterface $child Child container.
-     *
-     * @return void
-     */
-    public function appendChild(ContainerInterface $child)
+    public function __construct(string $id = 'container')
     {
-        $this->children[] = $child;
+        $this->add($id, $this);
+    }
+
+    /**
+     * Adds an entry to the container.
+     *
+     * An entry can be of any type. To define a lazy loaded class, use `class()`
+     * or `factory()`.
+     *
+     * @api
+     *
+     * @param string $id    Identifier of the entry to set.
+     * @param mixed  $value Value of the entry to set.
+     *
+     * @return $this Fluent interface, allowing multiple calls to be chained.
+     */
+    public function add(string $id, $value): Container
+    {
+        $this->registry[$id] = $value;
+        return $this;
     }
     
     /**
-     * Define an entity.
+     * Adds a class definition for lazy loading.
      *
-     * @param  string  $id       Entity identifier.
-     * @param  mixed   $entity   Entity factory callable, class name or entity.
-     * @param  mixed[] $params   Parameters for entity construction.
-     * @param  bool    $register Whether the entity should become shared.
+     * After first instantiation, the same instance will be returned by `get()`
+     * on each call. If this is not the desired behaviour, you should set the
+     * third parameter to `false`.
      *
-     * @return bool `true` on success, `false` otherwise.
+     * @api
+     *
+     * @param string $className  The name of the defined class. Using the
+     *      `::class` keyword is recommended.
+     * @param array  $parameters Values to pass to the class constructor.
+     * @param bool   $register   Whether the entry should be registered.
+     *
+     * @throws InvalidArgumentException The given class name does not exist.
+     *
+     * @return Definition
      */
     public function define(
-        string $id,
-        $entity,
-        array $params = [],
+        string $className,
+        array $parameters = [],
         bool $register = true
-    ): bool {
-        $return = !isset($this->definitions[$id]);
-        if ($return) {
-            if (is_callable($entity)) {
-                $method = $entity;
-            } elseif (is_string($entity)) {
-                $method = (class_exists($entity))
-                        ? $this->makeFactory($entity)
-                        : $this->makeProvider($entity);
-            }
-            $method = $method ?? $this->makeProvider($entity);
-            $this->definitions[$id] = [
-                'method'   => $method,
-                'params'   => $params,
-                'register' => $register,
-            ];
-        }
-        return $return;
+    ): Definition {
+        return new ClassDefinition($register, $className, ...$parameters);
+    }
+
+    /**
+     * Deletes an entry from the container.
+     *
+     * @api
+     *
+     * @param string $id Identifier of the entry to delete.
+     *
+     * @return $this Fluent interface, allowing multiple calls to be chained.
+     */
+    public function delete(string $id): Container
+    {
+        unset($this->registry[$id]);
+        return $this;
     }
     
     /**
-     * Finds an entry of the container by its identifier and returns it.
+     * Use a container entry as a parameter for a lazy loading definition.
      *
-     * @param string $id Identifier of the entry to look for.
+     * @api
      *
-     * @throws NotFoundException  No entry was found for this identifier.
-     * @throws ContainerException Error while retrieving the entry.
+     * @param string $id Identifier of the entry to reference.
      *
-     * @return mixed Entry.
+     * @return EntryProxy When an `EntryProxy` is encountered in a parameter
+     *      list while resolving a definition it is replaced with the container
+     *      entry with the given identifier.
      */
+    public function entry(string $id): EntryProxy
+    {
+        return new EntryProxy($id);
+    }
+
+    /**
+     * Adds a factory callable for lazy loading.
+     *
+     * After first instantiation, the same instance will be returned by `get()`
+     * on each call. If this is not the desired behaviour, you should set the
+     * third parameter to `false`.
+     *
+     * @api
+     *
+     * @param callable $callable   The factory callable to use.
+     * @param array    $parameters Values to pass to the given callable.
+     * @param bool     $register   Whether the entry should be registered.
+     *
+     * @throws InvalidArgumentException The given class name does not exist.
+     *
+     * @return Definition
+     */
+    public function factory(
+        callable $callable,
+        array $parameters = [],
+        bool $register = true
+    ): Definition {
+        return new FactoryDefinition($register, $callable, ...$parameters);
+    }
+
+    /** @inheritdoc */
     public function get($id)
     {
         if (!is_string($id)) {
-            $msg = 'Identifier must be a string';
-            throw new InvalidArgumentException($msg, 500);
+            throw new TypeError('Parameter must be a string');
+        }
+        if (!$this->has($id)) {
+            throw new NotFoundException("$id not found");
+        }
+        $entry = $this->registry[$id];
+        if (!$entry instanceof Definition) {
+            return $entry;
         }
         try {
-            if ($this->has($id)) {
-                $return = $this->registry[$id] ?? $this->getFromDefinition($id);
-            } elseif (!empty($this->children)) {
-                foreach ($this->children as $child) {
-                    if ($child->has($id)) {
-                        $return = $child->get($id);
-                        break;
-                    }
-                }
-            }       
-        } catch (Throwable $t) {
-            $msg = 'Could not get ' . $id . ': ' . $t->getMessage();
-            throw new ContainerException($msg, $t->getCode(), $t);
+            $return = $this->build($entry);
+        } catch (Throwable $caught) {
+            throw new ContainerException(
+                "Error getting $id",
+                $caught->getCode(),
+                $caught
+            );
         }
-        if (!isset($return)) {
-            $msg = $id . ' not found';
-            throw new NotFoundException($msg);
+        if ($entry->getRegister()) {
+            $this->add($id, $return);
         }
         return $return;
     }
-    
-    /**
-     * Returns true if the container can return an entry for the given identifier.
-     * Returns false otherwise.
-     * 
-     * `has($id)` returning true does not mean that `get($id)` will not throw an exception.
-     * It does however mean that `get($id)` will not throw a `NotFoundException`.
-     *
-     * @param string $id Identifier of the entry to look for.
-     *
-     * @return boolean
-     */
-    public function has($id)
+
+    /** @inheritdoc */
+    public function has($id): bool
     {
         if (!is_string($id)) {
-            $msg = 'Identifier must be a string';
-            throw new InvalidArgumentException($msg, 500);
+            throw new TypeError('Parameter must be a string');
         }
-        $return = isset($this->registry[$id]) || isset($this->definitions[$id]);
-        return $return;
+        return array_key_exists($id, $this->registry);
     }
-    
+
     /**
-     * Prepend a child container.
+     * @internal Implements `ArrayAccess`.
      *
-     * @param ContainerInterface $child Child container.
+     * @param mixed $offset
+     *
+     * @return bool
+     */
+    public function offsetExists($offset): bool
+    {
+        if (!is_string($offset)) {
+            return false;
+        }
+        return $this->has($offset);
+    }
+
+    /**
+     * @internal Implements `ArrayAccess`.
+     *
+     * @param mixed $offset
+     *
+     * @return mixed
+     */
+    public function offsetGet($offset)
+    {
+        if (!is_string($offset) || !$this->has($offset)) {
+            return null;
+        }
+        return $this->get($offset);
+    }
+
+    /**
+     * @internal Implements `ArrayAccess`.
+     *
+     * @param mixed $offset
+     * @param mixed $value
      *
      * @return void
      */
-    public function prependChild(ContainerInterface $child)
+    public function offsetSet($offset, $value)
     {
-        array_unshift($this->children, $child);
-    }
-    
-    /**
-     * Register an entity as shared.
-     *
-     * @param string $id     Entity identifier.
-     * @param mixed  $entity Entity to share.
-     *
-     * @return bool `true` on success, `false` otherwise
-     */
-    public function register(string $id, $entity): bool
-    {
-        $return = !isset($this->registry[$id]);
-        if ($return) {
-            $this->registry[$id] = $entity;
+        if (is_string($offset)) {
+            $this->add($offset, $value);
         }
-        return $return;
     }
-    
+
     /**
-     * Set the parent container.
+     * @internal Implements `ArrayAccess`.
      *
-     * @param ContainerInterface $parent Parent container.
+     * @param mixed $offset
      *
      * @return void
      */
-    public function setParent(ContainerInterface $parent)
+    public function offsetUnset($offset)
     {
-        $this->parent = $parent;
-    }
-
-    private function getFromDefinition(string $id)
-    {
-        $method = $this->definitions[$id]['method'];
-        $params = [];
-        foreach ($this->definitions[$id]['params'] as $param) {
-            $params[] = $this->resolveParameter($param);
+        if (is_string($offset)) {
+            $this->delete($offset);
         }
-        try {
-            $return = $method(...$params);
-        } catch (Throwable $t) {
-            $msg = 'Invalid user defined callable for ' . $id;
-            throw new BadFunctionCallException($msg, $t->getCode(), $t);
+    }
+
+    private function build(Definition $definition)
+    {
+        $params = $this->resolveParams($definition->getParameters());
+        $cargo = $definition->getCargo();
+        $object = ($definition instanceof ClassDefinition)
+            ? new $cargo(...$params)
+            : call_user_func($definition->getCargo(), ...$params);
+        if (!is_object($object)) {
+            $msg = 'No object returned from callable';
+            throw new UnexpectedValueException($msg);
         }
-        if ($this->definitions[$id]['register']) {
-            $this->register($id, $return);
+        $methods = $definition->getMethods();
+        foreach ($methods as $method => $params) {
+            $params = $this->resolveParams($params);
+            $object->$method(...$params);
         }
-        return $return;
+        return $object;
     }
 
-    private function makeFactory(string $className): callable
+    private function resolveParams(array $parameters): array
     {
-        return function (...$params) use ($className) {
-            return new $className(...$params);
-        };
-    }
-
-    private function makeProvider($entity): callable
-    {
-        return function (...$params) use ($entity) {
-            return $entity;
-        };
-    }
-
-    private function resolveParameter($parameter)
-    {
-        $return = $parameter;
-        if (is_string($parameter)) {
-            if (strpos($parameter, ':') === 0) {
-                $id = substr($parameter, 1);
-                $return = (isset($this->parent))
-                        ? $this->parent->get($id)
-                        : $this->get($id);
+        $return = [];
+        foreach ($parameters as $key => $value) {
+            $return[$key] = $value;
+            if (is_array($value)) {
+                $return[$key] = $this->resolveParams($value);
             }
-        }
-        if (is_array($parameter)) {
-            $return = [];
-            foreach ($parameter as $key => $item) {
-                $return[$key] = $this->resolveParameter($item);
+            if ($value instanceof EntryProxy) {
+                $return[$key] = $this->get((string) $value);
             }
         }
         return $return;

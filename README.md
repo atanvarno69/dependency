@@ -1,11 +1,11 @@
 # Atan\Dependency
-[PSR-11](https://github.com/container-interop/container-interop) dependency injection container.
+A bare bones [PSR-11](http://www.php-fig.org/psr/psr-11/) dependency injection container, implementing `ContainerInterface` and `ArrayAccess`.
 
 ## Requirements
 **PHP >= 7.0** is required, but the latest stable version of PHP is recommended.
 
 ## Installation
-Add the following to your composer.json:
+Add the following to your `composer.json` file:
 ```json
 {
     "repositories": [
@@ -15,43 +15,60 @@ Add the following to your composer.json:
         }
     ],
     "require": {
-        "atan/dependency": "^0.2.0"
+        "atan/dependency": "^0.3.0"
     }
 }
 ```
 Then:
 ```bash
 $ composer install
-# or
-$ composer update
 ```
 
-## Container
-[PSR-11](https://github.com/container-interop/container-interop) dependency injection container.
+## Basic Usage
 ```php
-use Atan\Dependency\Container;
+use Atan\Dependency\{
+    Container, Definition
+};
 
+// Create the container:
 $container = new Container();
 
-// Define entries to be lazy loaded
-$container->define('ID', ClassName::class, ['Constructor', 'Params', ':OtherID']);
-
-// Register already instantiated entries
-$container->register('OtherID', $instance);
+// Add an entery (which can be of any type):
+$container->add('ID', $someEntry);
 
 // Get an entry
 $entry = $container->get('ID');
+
+// To define a class to be lazy loaded, use the `define()` method:
+$container->add(
+    'Lazy', $container->define(ClassName::class, ...$constructorParameters)
+);
+
+// To pass a container entry as a constructor parameter use the `entry()` method:
+$container->add('parameter', $value);
+$container->add(
+    'Lazy', $container->define(ClassName::class, $container->entry('parameter'))
+);
+
+// The same entry for a lazy loaded class is always returned after it has been
+// created the first time. You can instead return a new instance on each `get()` 
+// call by using `factory()` instead of `define()`:
+$container->add(
+    'Lazy', $container->factory(ClassName::class, ...$constructorParameters)
+);
+
+// Check the container has an entry for a given identifier using `has()`:
+$item = $container->has('ID') ? $container->get('ID') : 'Not set';
+
+// Delete an entry from the container:
+$container->delete('ID');
+
+// You can use array syntax instead:
+$container['ID'] = $someEntry; # Add an entry
+$array = $container['ID'];     # Get an entry
+isset($container['ID']);       # Check an entry
+unset($container['ID']);       # Delete an entry
 ```
-Container marks all entries as registered (the same entity will always be returned) upon first instantiation, unless told otherwise. Container can provide objects from a class name, the output of a callable, or any other non-`null` type.
-
-Container implements the *delegate lookup* feature and can act as a composite container (with entries) and/or a child container, using its `setParent()`, `appendChild()` and `prependChild()` methods.
-
-See the [API](https://github.com/atanvarno69/dependency/blob/master/doc/Container.md).
 
 ## Full API
-* [Atan\Dependency\Container](https://github
-.com/atanvarno69/dependency/blob/master/docs/Container.md).
-* [Atan\Dependency\Exception\ContainerException](https://github
-.com/atanvarno69/dependency/blob/master/docs/ContainerException.md).
-* [Atan\Dependency\Exception\NotFoundException](https://github
-.com/atanvarno69/dependency/blob/master/docs/NotFoundException.md).
+See [API](https://github.com/atanvarno69/dependency/blob/master/docs/API.md).
