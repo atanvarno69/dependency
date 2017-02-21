@@ -37,33 +37,40 @@ $container->add('ID', $someEntry);
 // Get an entry
 $entry = $container->get('ID');
 
+// Check the container has an entry for a given identifier using `has()`:
+$item = $container->has('ID') ? $container->get('ID') : 'Not set';
+
 // To define a class to be lazy loaded, use the `define()` method:
+$constructorParameters = ['some', $parameters];
 $container->add(
-    'Lazy', $container->define(ClassName::class, ...$constructorParameters)
+    'Lazy', $container->define(ClassName::class, $constructorParameters)
 );
 
 // To pass a container entry as a constructor parameter use the `entry()` method:
 $container->add('parameter', $value);
 $container->add(
-    'Lazy', $container->define(ClassName::class, $container->entry('parameter'))
+    'Lazy', $container->define(ClassName::class, [$container->entry('parameter')])
 );
+
+// You can give a factory `callable` instead of a definition using the `factory()` method:
+$factory = function (...$params) {
+    return new ClassName(...$params);
+};
+$container->add('Lazy', $container->factory($callable, $parameters));
 
 // The same entry for a lazy loaded class is always returned after it has been
 // created the first time. You can instead return a new instance on each `get()` 
-// call by using `factory()` instead of `define()`:
+// call by passing `false` as `define()` or `factory()`'s third parameter:
 $container->add(
-    'Lazy', $container->factory(ClassName::class, ...$constructorParameters)
+    'Lazy', $container->define(ClassName::class, $constructorParameters, false)
 );
-
-// Check the container has an entry for a given identifier using `has()`:
-$item = $container->has('ID') ? $container->get('ID') : 'Not set';
 
 // Delete an entry from the container:
 $container->delete('ID');
 
 // You can use array syntax instead:
 $container['ID'] = $someEntry; # Add an entry
-$array = $container['ID'];     # Get an entry
+$object = $container['ID'];    # Get an entry
 isset($container['ID']);       # Check an entry
 unset($container['ID']);       # Delete an entry
 ```
