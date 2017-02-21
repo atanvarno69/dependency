@@ -26,9 +26,7 @@ $ composer install
 
 ## Basic Usage
 ```php
-use Atan\Dependency\{
-    Container, Definition
-};
+use Atan\Dependency\Container;
 
 // Create the container:
 $container = new Container();
