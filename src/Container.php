@@ -176,7 +176,9 @@ class Container implements ArrayAccess, ContainerInterface
     public function get($id)
     {
         if (!is_string($id)) {
-            throw new TypeError('Parameter must be a string');
+            throw new TypeError(
+                $this->getBcTypeErrorMessage(1, __METHOD__, 'string', $id)
+            );
         }
         if (!$this->has($id)) {
             throw new NotFoundException("$id not found");
@@ -204,7 +206,9 @@ class Container implements ArrayAccess, ContainerInterface
     public function has($id): bool
     {
         if (!is_string($id)) {
-            throw new TypeError('Parameter must be a string');
+            throw new TypeError(
+                $this->getBcTypeErrorMessage(1, __METHOD__, 'string', $id)
+            );
         }
         return array_key_exists($id, $this->registry);
     }
@@ -285,6 +289,21 @@ class Container implements ArrayAccess, ContainerInterface
             $object->$method(...$params);
         }
         return $object;
+    }
+    
+    private function getBcTypeErrorMessage(
+        int $arg,
+        string $method,
+        string $expected,
+        $actual
+    ): string {
+        return sprintf(
+            'Argument %u passed to %s must be of the type %s, %s given',
+            $arg,
+            $method,
+            $expected,
+            gettype($actual)
+        );
     }
 
     private function resolveParams(array $parameters): array
