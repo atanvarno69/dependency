@@ -1,8 +1,4 @@
 # Managed by Composer
-/vendor
 composer.lock
 composer.phar
-
-# IDE
-/.nb
-/nbproject
+/vendor/
