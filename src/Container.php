@@ -1,12 +1,12 @@
 <?php
 /**
- * @package   Atan\Dependency
+ * @package   Atanvarno\Dependency
  * @author    atanvarno69 <https://github.com/atanvarno69>
  * @copyright 2017 atanvarno.com
  * @license   https://opensource.org/licenses/MIT The MIT License
  */
 
-namespace Atan\Dependency;
+namespace Atanvarno\Dependency;
 
 /** SPL use block. */
 use ArrayAccess,
@@ -19,12 +19,12 @@ use ArrayAccess,
 use Psr\Container\ContainerInterface;
 
 /** Package use block. */
-use Atan\Dependency\Exception\{
+use Atanvarno\Dependency\Exception\{
     ContainerException, NotFoundException
 };
 
 /**
- * Atan\Dependency\Container
+ * Atanvarno\Dependency\Container
  *
  * A basic container implementing PSR-11 `ContainerInterface`.
  *

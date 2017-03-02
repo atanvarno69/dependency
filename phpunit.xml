@@ -7,7 +7,7 @@
          processIsolation="false"
          stopOnFailure="false">
     <testsuites>
-        <testsuite name="Atan\Dependency test suite">
+        <testsuite name="Atanvarno\Dependency test suite">
             <directory>tests</directory>
         </testsuite>
     </testsuites>
@@ -16,4 +16,10 @@
             <directory suffix=".php">src</directory>
         </whitelist>
     </filter>
+    <logging>
+        <log type="junit" target="build/report.junit.xml"/>
+        <log type="coverage-text" target="php://stdout"/>
+        <log type="coverage-html" target="build/coverage" charset="UTF-8" yui="true" highlight="true"/>
+        <log type="coverage-clover" target="build/logs/clover.xml" />
+    </logging>
 </phpunit>

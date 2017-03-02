@@ -1,6 +1,6 @@
-# Atan\Dependency API
+# Atanvarno\Dependency API
 A bare bones [PSR-11](http://www.php-fig.org/psr/psr-11/) dependency injection container, implementing `ContainerInterface` and `ArrayAccess`.
-* [Atan\Dependency\Container](Container.md)
-* [Atan\Dependency\Definition](Definition.md)
-* [Atan\Dependency\Exception\ContainerException](ContainerException.md)
-* [Atan\Dependency\Exception\NotFoundException](NotFoundException.md)
+* [Atanvarno\Dependency\Container](Container.md)
+* [Atanvarno\Dependency\Definition](Definition.md)
+* [Atanvarno\Dependency\Exception\ContainerException](ContainerException.md)
+* [Atanvarno\Dependency\Exception\NotFoundException](NotFoundException.md)

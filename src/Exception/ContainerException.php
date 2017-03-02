@@ -1,12 +1,12 @@
 <?php
 /**
- * @package   Atan\Dependency
+ * @package   Atanvarno\Dependency
  * @author    atanvarno69 <https://github.com/atanvarno69>
  * @copyright 2017 atanvarno.com
  * @license   https://opensource.org/licenses/MIT The MIT License
  */
  
-namespace Atan\Dependency\Exception;
+namespace Atanvarno\Dependency\Exception;
 
 /** SPL use block */
 use Exception;
@@ -15,7 +15,7 @@ use Exception;
 use Psr\Container\ContainerExceptionInterface;
 
 /**
- * Atan\Dependency\Exception\ContainerException
+ * Atanvarno\Dependency\Exception\ContainerException
  *
  * @internal Exception implementing `ContainerExceptionInterface`.
  */

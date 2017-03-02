@@ -1,12 +1,12 @@
 <?php
 /**
- * @package   Atan\Dependency
+ * @package   Atanvarno\Dependency
  * @author    atanvarno69 <https://github.com/atanvarno69>
  * @copyright 2017 atanvarno.com
  * @license   https://opensource.org/licenses/MIT The MIT License
  */
 
-namespace Atan\Dependency\Test;
+namespace Atanvarno\Dependency\Test;
 
 /** SPL use block. */
 use Exception;
@@ -18,7 +18,7 @@ use Psr\Container\ContainerExceptionInterface;
 use PHPUnit\Framework\TestCase;
 
 /** Package use block. */
-use Atan\Dependency\Exception\ContainerException;
+use Atanvarno\Dependency\Exception\ContainerException;
 
 class ContainerExceptionTest extends TestCase
 {   

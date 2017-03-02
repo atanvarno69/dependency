@@ -1,4 +1,4 @@
-# Atan\Dependency\Exception\ContainerException
+# Atanvarno\Dependency\Exception\ContainerException
 Exception implementing [PSR-11 `ContainerExceptionInterface`](http://www.php-fig.org/psr/psr-11/#22-psrcontainercontainerexceptioninterface).
 
 ```php

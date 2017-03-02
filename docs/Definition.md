@@ -1,4 +1,4 @@
-# Atan\Dependency\Definition
+# Atanvarno\Dependency\Definition
 A definition for a lazy loaded [`Container`](Container.md) entry.
 ```php
 interface Definition

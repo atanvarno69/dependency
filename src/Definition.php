@@ -1,15 +1,15 @@
 <?php
 /**
- * @package   Atan\Dependency
+ * @package   Atanvarno\Dependency
  * @author    atanvarno69 <https://github.com/atanvarno69>
  * @copyright 2017 atanvarno.com
  * @license   https://opensource.org/licenses/MIT The MIT License
  */
 
-namespace Atan\Dependency;
+namespace Atanvarno\Dependency;
 
 /**
- * Atan\Dependency\Definition
+ * Atanvarno\Dependency\Definition
  *
  * A definition for a lazy loaded `Container` entry.
  *

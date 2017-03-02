@@ -1,12 +1,12 @@
 <?php
 /**
- * @package   Atan\Dependency
+ * @package   Atanvarno\Dependency
  * @author    atanvarno69 <https://github.com/atanvarno69>
  * @copyright 2017 atanvarno.com
  * @license   https://opensource.org/licenses/MIT The MIT License
  */
 
-namespace Atan\Dependency\Test;
+namespace Atanvarno\Dependency\Test;
 
 /** SPL use block. */
 use ReflectionClass;
@@ -15,8 +15,8 @@ use ReflectionClass;
 use PHPUnit\Framework\TestCase;
 
 /** Package use block. */
-use Atan\Dependency\Definition;
-use Atan\Dependency\DefinitionTrait;
+use Atanvarno\Dependency\Definition;
+use Atanvarno\Dependency\DefinitionTrait;
 
 class DefinitionTraitTest extends TestCase
 {

@@ -1,12 +1,12 @@
 <?php
 /**
- * @package   Atan\Dependency
+ * @package   Atanvarno\Dependency
  * @author    atanvarno69 <https://github.com/atanvarno69>
  * @copyright 2017 atanvarno.com
  * @license   https://opensource.org/licenses/MIT The MIT License
  */
 
-namespace Atan\Dependency\Test;
+namespace Atanvarno\Dependency\Test;
 
 /** PSR-11 use block. */
 use Psr\Container\NotFoundExceptionInterface;
@@ -15,7 +15,7 @@ use Psr\Container\NotFoundExceptionInterface;
 use PHPUnit\Framework\TestCase;
 
 /** Package use block. */
-use Atan\Dependency\Exception\{
+use Atanvarno\Dependency\Exception\{
     ContainerException, NotFoundException
 };
 

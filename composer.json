@@ -1,5 +1,5 @@
 {
-    "name": "atan/dependency",
+    "name": "atanvarno/dependency",
     "description": "PSR-11 dependency injection container",
     "keywords": [
          "PSR-11", "container", "dependency injection", "dic", "ioc"
@@ -26,12 +26,12 @@
     },
     "autoload": {
         "psr-4": {
-            "Atan\\Dependency\\": "src"
+            "Atanvarno\\Dependency\\": "src"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Atan\\Dependency\\Test\\": "tests"
+            "Atanvarno\\Dependency\\Test\\": "tests"
         }
     },
     "minimum-stability": "dev",

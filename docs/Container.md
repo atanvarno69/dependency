@@ -1,4 +1,4 @@
-# Atan\Dependency\Container
+# Atanvarno\Dependency\Container
 A basic container implementing [PSR-11 `ContainerInterface`](http://www.php-fig.org/psr/psr-11/#21-psrcontainercontainerinterface).
 ```php
 class Container implements ArrayAccess, ContainerInterface
