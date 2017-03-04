@@ -43,7 +43,7 @@ $container->add(
 );
 
 // You can give a factory `callable` instead of a definition using the `factory()` method:
-$factory = function (...$params) {
+$callable = function (...$params) {
     return new ClassName(...$params);
 };
 $container->add('Lazy', $container->factory($callable, $parameters));
