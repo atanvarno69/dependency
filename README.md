@@ -11,7 +11,7 @@ A bare bones [PSR-11](http://www.php-fig.org/psr/psr-11/) dependency injection c
 
 ## Installation
 ```bash
-$ composer require atanvarno/dependency:^1.0.0
+$ composer require atanvarno/dependency:^1.1.0
 ```
 
 ## Basic Usage
