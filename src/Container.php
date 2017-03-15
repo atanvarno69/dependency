@@ -18,6 +18,9 @@ use ArrayAccess,
 /** PSR-11 use block. */
 use Psr\Container\ContainerInterface;
 
+/** PSR-16 use block. */
+use Psr\SimpleCache\CacheInterface;
+
 /** Package use block. */
 use Atanvarno\Dependency\Exception\{
     ContainerException, NotFoundException
@@ -52,8 +55,13 @@ use Atanvarno\Dependency\Exception\{
  */
 class Container implements ArrayAccess, ContainerInterface
 {
-    /** @var mixed[] $registry Container entries indexed by identifiers. */
-    private $registry;
+    /**
+     * @var CacheInterface|null $cache    Cache.
+     * @var string              $cacheKey Cache key prefix for the container.
+     * @var mixed[]             $registry Container entries indexed by
+     *      identifiers.
+     */
+    private $cache, $cacheKey, $registry;
 
     /**
      * Container constructor.
@@ -64,10 +72,16 @@ class Container implements ArrayAccess, ContainerInterface
      *
      * @api
      *
-     * @param string  $id      Identifier for the container's own entry.
+     * @param string              $id    Identifier for the container's own
+     *      entry.
+     * @param CacheInterface|null $cache PSR-16 cache for the container to use.
      */
-    public function __construct(string $id = 'container')
-    {
+    public function __construct(
+        string $id = 'container',
+        CacheInterface $cache = null
+    ) {
+        $this->cache = $cache;
+        $this->cacheKey = $id . '.';
         $this->add($id, $this);
     }
 
@@ -86,6 +100,10 @@ class Container implements ArrayAccess, ContainerInterface
      */
     public function add(string $id, $value): Container
     {
+        if ($this->cache instanceof CacheInterface) {
+            $this->cache->set($this->cacheKey . $id, $value);
+            return $this;
+        }
         $this->registry[$id] = $value;
         return $this;
     }
@@ -127,6 +145,10 @@ class Container implements ArrayAccess, ContainerInterface
      */
     public function delete(string $id): Container
     {
+        if ($this->cache instanceof CacheInterface) {
+            $this->cache->delete($this->cacheKey . $id);
+            return $this;
+        }
         unset($this->registry[$id]);
         return $this;
     }
@@ -183,7 +205,9 @@ class Container implements ArrayAccess, ContainerInterface
         if (!$this->has($id)) {
             throw new NotFoundException("$id not found");
         }
-        $entry = $this->registry[$id];
+        $entry = ($this->cache instanceof CacheInterface)
+            ? $this->cache->get($this->cacheKey . $id)
+            : $this->registry[$id];
         if (!$entry instanceof Definition) {
             return $entry;
         }
@@ -210,7 +234,9 @@ class Container implements ArrayAccess, ContainerInterface
                 $this->getBcTypeErrorMessage(1, __METHOD__, 'string', $id)
             );
         }
-        return array_key_exists($id, $this->registry);
+        return ($this->cache instanceof CacheInterface)
+            ? $this->cache->has($this->cacheKey . $id)
+            : array_key_exists($id, $this->registry);
     }
 
     /**

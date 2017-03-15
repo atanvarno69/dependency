@@ -4,7 +4,7 @@ A basic container implementing [PSR-11 `ContainerInterface`](http://www.php-fig.
 class Container implements ArrayAccess, ContainerInterface
 {
     // Methods
-    public function __construct(string $id = 'container')
+    public function __construct(string $id = 'container', CacheInterface $cache = null)
     public function add(string $id, mixed $value): Container
     public function define(string $className, array $parameters, bool $register = true): Definition
     public function delete(string $id): Container
@@ -39,12 +39,16 @@ Note that unlike a normal array, only `string` identifiers will be accepted by t
 
 ## __construct
 ```php
-__construct(string $id = 'container')
+__construct(string $id = 'container', CacheInterface $cache = null)
 ```
 ### Parameters
 * `string` **$id**
 
   Optional. Defaults to `'container'`. An identifier for the container to retreive itself via [`get()`](#get).
+
+* [`CacheInterface`](http://www.php-fig.org/psr/psr-16/#cacheinterface)
+
+  Optional. Defaults to `null`. A [PSR-16](http://www.php-fig.org/psr/psr-16/) cache for the container to use.
 
 ### Throws
 Nothing is thrown.
