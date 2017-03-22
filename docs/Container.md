@@ -16,7 +16,7 @@ class Container implements ArrayAccess, ContainerInterface
 ```
 The container may contain and return any PHP type. These container entries are associated with a unique user-defined `string` identifier. All entries, except those defined with [`factory()`](#factory), are registered, that is a call to [`get()`](#get) with the identifier will always return the same value.
 
-Entries can be defined using the [`add()`](#add) method. Lazy loaded classes are defined using [`define()`](#define) (for registered classes) or [`factory()`] (#factory) (for unregistered classes).
+Entries can be defined using the [`add()`](#add) method. Lazy loaded classes are defined using [`define()`](#define) (for registered classes) or [`factory()`](#factory) (for unregistered classes).
 
 As `Container` implements [`ArrayAccess`](http://php.net/manual/en/class.arrayaccess.php), it can be used with array syntax:
 ```php
