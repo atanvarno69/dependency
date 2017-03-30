@@ -1,3 +1,4 @@
+<?php
 /**
  * @package   Atanvarno\Dependency
  * @author    atanvarno69 <https://github.com/atanvarno69>
