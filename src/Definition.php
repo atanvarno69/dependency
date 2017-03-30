@@ -19,31 +19,15 @@ namespace Atanvarno\Dependency;
 interface Definition
 {
     /**
-     * Get the definition cargo.
+     * Builds the entry
      *
      * @internal For use by `Container`.
      *
-     * @return callable|string Definition callable or class name.
+     * @param ContainerInterface $container Container to resolve dependencies.
+     *
+     * @return mixed The entry.
      */
-    public function getCargo();
-
-    /**
-     * Get the methods to call on the object after instantiation.
-     *
-     * @internal For use by `Container`.
-     *
-     * @return array Parameters.
-     */
-    public function getMethods(): array;
-
-    /**
-     * Get the parameters to pass.
-     *
-     * @internal For use by `Container`.
-     *
-     * @return array Constructor parameters.
-     */
-    public function getParameters(): array;
+    public function build(ContainerInterface $container);
 
     /**
      * Get the registration flag.
@@ -52,7 +36,7 @@ interface Definition
      *
      * @return bool Registration flag.
      */
-    public function getRegister(): bool;
+    public function isRegistered(): bool;
 
     /**
      * Adds a method to call after object instantiation.
@@ -65,5 +49,17 @@ interface Definition
      *
      * @return $this Fluent interface, allowing multiple calls to be chained.
      */
-    public function method(string $name, ...$parameters): Definition;
+    public function method(string $name, array $parameters = []): Definition;
+    
+    /**
+     * Sets a property after object instantiation.
+     *
+     * @api
+     *
+     * @param string $name  Property name to set.
+     * @param mixed  $value Value to set.
+     *
+     * @return $this Fluent interface, allowing multiple calls to be chained.
+     */
+    public function property(string $name, $value = null): Definition;
 }
