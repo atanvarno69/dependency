@@ -8,6 +8,9 @@
 
 namespace Atanvarno\Dependency\Test;
 
+/** SPL use block. */
+use Exception;
+
 /** PSR-11 use block. */
 use Psr\Container\NotFoundExceptionInterface;
 
@@ -24,6 +27,7 @@ class NotFoundExceptionTest extends TestCase
     public function testContainerExceptionImplementsInterface()
     {
         $exception = new NotFoundException();
+        $this->assertInstanceOf(Exception::class, $exception);
         $this->assertInstanceOf(ContainerException::class, $exception);
         $this->assertInstanceOf(NotFoundExceptionInterface::class, $exception);
     }
