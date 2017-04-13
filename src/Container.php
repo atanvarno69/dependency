@@ -139,7 +139,7 @@ class Container implements ArrayAccess, ContainerInterface
     
     public function offsetSet($offset, $value)
     {
-        $this->set($offsetm $value);
+        $this->set($offset, $value);
     }
     
     public function offsetUnset($offset)
