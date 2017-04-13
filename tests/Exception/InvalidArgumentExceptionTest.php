@@ -19,7 +19,7 @@ use Atanvarno\Dependency\Exception\{
     ContainerException, InvalidArgumentException
 };
 
-class NotFoundExceptionTest extends TestCase
+class InvalidArgumentExceptionTest extends TestCase
 {   
     public function testContainerExceptionImplementsInterface()
     {
