@@ -18,12 +18,7 @@ use function Atanvarno\Dependency\{
 use Atanvarno\Dependency\Definition\Entry;
 
 class FunctionsTest extends TestCase
-{
-    public function setUp()
-    {
-        include dirname(__DIR__) . '/src/functions.php';
-    }
-    
+{    
     public function testFunctionEntry()
     {
         $result = entry('ID');
