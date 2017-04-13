@@ -57,7 +57,7 @@ class Container implements ArrayAccess, ContainerInterface
     ) {
         foreach ($definitions as $definition) {
             if (!$definition instanceof Definition) {
-                $msg = 'Definitions array must contain only Definition objects'
+                $msg = 'Definitions array must contain only Definition objects';
                 throw new InvalidArgumentException($msg);
             }
         }
