@@ -8,6 +8,9 @@
 
 namespace Atanvarno\Dependency\Definition;
 
+/** PSR-11 use block. */
+use Psr\Container\ContainerInterface;
+
 /** Package use block. */
 use Atanvarno\Dependency\{
     Definition,
