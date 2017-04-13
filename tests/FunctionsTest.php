@@ -12,9 +12,10 @@ namespace Atanvarno\Dependency\Test;
 use PHPUnit\Framework\TestCase;
 
 /** Package use block. */
-use Atanvarno\Dependency\{
-    entry, factory, object, value, Definition\Entry as EntryClass
+use function Atanvarno\Dependency\{
+    entry, factory, object, value
 };
+use Atanvarno\Dependency\Definition\Entry;
 
 class FunctionsTest extends TestCase
 {
@@ -26,7 +27,7 @@ class FunctionsTest extends TestCase
     public function testFunctionEntry()
     {
         $result = entry('ID');
-        $this->assertInstanceOf(EntryClass::class, $result);
+        $this->assertInstanceOf(Entry::class, $result);
         $this->assertSame('ID', (string) $result);
     }
 }
