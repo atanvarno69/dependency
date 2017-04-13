@@ -84,17 +84,17 @@ class AbstractDefinitionTest extends TestCase
         $result = $this->definition->property('test');
         $this->assertSame($this->definition, $result);
         $expected = [
-            ['property', 'test', []],
+            ['property', 'test', null],
         ];
         $this->assertAttributeEquals($expected, 'actions', $result);
     }
     
-    public function testPropertyWithParameters()
+    public function testPropertyWithValue()
     {
-        $result = $this->definition->property('test', ['A', 'B', 'C']);
+        $result = $this->definition->property('test', 'value');
         $this->assertSame($this->definition, $result);
         $expected = [
-            ['property', 'test', ['A', 'B', 'C']],
+            ['property', 'test', 'value'],
         ];
         $this->assertAttributeEquals($expected, 'actions', $result);
     }
