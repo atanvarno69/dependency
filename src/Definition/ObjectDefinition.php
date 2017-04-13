@@ -20,7 +20,7 @@ class ObjectDefinition extends AbstractDefinition
         array $parameters,
         bool $register
     ) {
-        if (!class_exists($className) {
+        if (!class_exists($className)) {
             $msg = sprintf('%s is not a valid class name', $className);
             throw new ContainerException($msg);
         }
