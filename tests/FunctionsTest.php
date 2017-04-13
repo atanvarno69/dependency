@@ -20,7 +20,7 @@ class FunctionsTest extends TestCase
 {
     public function setUp()
     {
-        include '../src/functions.php';
+        include dirname(__DIR__) . '/src/functions.php';
     }
     
     public function testFunctionEntry()
