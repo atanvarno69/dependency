@@ -177,7 +177,7 @@ class Container implements ArrayAccess, ContainerInterface
     private function compositeHas(string $id): bool
     {
         if ($this->selfHas()) {
-            return $true;
+            return true;
         }
         foreach ($this->children as $child) {
             if ($child->has($id)) {
