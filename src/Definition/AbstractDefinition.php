@@ -105,7 +105,7 @@ class AbstractDefinition implements Definition
             );
             throw new ContainerException($msg);
         }
-        $object->${$propertyName} = $value);
+        $object->${$propertyName} = $value;
         return $object;
     }
 }
