@@ -5,6 +5,7 @@
  * @copyright 2017 atanvarno.com
  * @license   https://opensource.org/licenses/MIT The MIT License
  */
+
 namespace Atanvarno\Dependency;
 
 /** Package use block. */
