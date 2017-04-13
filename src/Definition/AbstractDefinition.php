@@ -100,7 +100,7 @@ abstract class AbstractDefinition implements Definition
     
     private function resolveSetProperty($object, string $propertyName, $value)
     {
-        if (!property_exists($object, $methodName)) {
+        if (!property_exists($object, $propertyName)) {
             $msg = sprintf(
                 'Property %s does not exist on %s class objects',
                 $propertyName,
@@ -108,7 +108,7 @@ abstract class AbstractDefinition implements Definition
             );
             throw new ContainerException($msg);
         }
-        $object->${$propertyName} = $value;
+        $object->{$propertyName} = $value;
         return $object;
     }
 }
