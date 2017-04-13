@@ -51,7 +51,7 @@ class Container implements ArrayAccess, ContainerInterface
      * @param string                    $cacheKey    Cache key for cached data.
      */
     public function __construct(
-        array $definitions,
+        array $definitions = [],
         $cache = null,
         string $cacheKey = 'container'
     ) {
