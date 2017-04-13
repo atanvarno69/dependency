@@ -76,7 +76,7 @@ if (!function_exists('Atanvarno\Dependency\value')) {
      *
      * @return ValueDefinition
      */
-    function object($value, bool $register = true): ValueDefinition
+    function value($value, bool $register = true): ValueDefinition
     {
         return new ValueDefinition($value, $register);
     }
