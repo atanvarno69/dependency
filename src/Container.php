@@ -292,7 +292,7 @@ class Container implements ArrayAccess, ContainerInterface
         if (!is_array($return) {
             $type = (is_object($return)
                 ? get_class($return)
-                : get_type($return);
+                : gettype($return);
             $msg = sprintf(
                 'Cache entry "%s" resolves to a %s, array expected',
                 $this->cacheKey,
