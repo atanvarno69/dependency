@@ -32,6 +32,6 @@ class ObjectDefinition extends AbstractDefinition
     protected function factoryMethod(ContainerInterface $container)
     {
         $parameters = $this->resolveParameter($this->parameters);
-        return new {$this->className}(...$parameters);
+        return new $this->className(...$parameters);
     }
 }
