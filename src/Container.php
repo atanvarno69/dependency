@@ -93,7 +93,7 @@ class Container implements ArrayAccess, ContainerInterface
             );
         }
         return (!empty($this->children))
-            ? $this->compositeGet($id);
+            ? $this->compositeGet($id)
             : $this->selfGet($id);
     }
     
@@ -105,7 +105,7 @@ class Container implements ArrayAccess, ContainerInterface
             );
         }
         return (!empty($this->children))
-            ? $this->compositeHas($id);
+            ? $this->compositeHas($id)
             : $this->selfHas($id);
     }
     
