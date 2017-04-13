@@ -17,7 +17,12 @@ use Atanvarno\Dependency\{
 };
 
 class FunctionsTest extends TestCase
-{   
+{
+    public function setUp()
+    {
+        include '../src/functions.php';
+    }
+    
     public function testFunctionEntry()
     {
         $result = entry('ID');
