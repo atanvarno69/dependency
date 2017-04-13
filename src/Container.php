@@ -290,7 +290,7 @@ class Container implements ArrayAccess, ContainerInterface
             );
         }
         if (!is_array($return) {
-            $type = (is_object($return)
+            $type = (is_object($return))
                 ? get_class($return)
                 : gettype($return);
             $msg = sprintf(
