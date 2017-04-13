@@ -80,7 +80,7 @@ class Container implements ArrayAccess, ContainerInterface
             $this->updateCache();
         }
         if (isset($this->definitions[$id])) {
-            unset($this->registry[$id]);
+            unset($this->definitions[$id]);
         }
         return $this;
     }
