@@ -14,7 +14,7 @@ use Atanvarno\Dependency\{
     Exception\ContainerException
 };
 
-class AbstractDefinition implements Definition
+abstract class AbstractDefinition implements Definition
 {
     private $actions, $register;
     
