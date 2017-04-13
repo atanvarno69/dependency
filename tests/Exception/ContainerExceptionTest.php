@@ -6,7 +6,7 @@
  * @license   https://opensource.org/licenses/MIT The MIT License
  */
 
-namespace Atanvarno\Dependency\Test;
+namespace Atanvarno\Dependency\Test\Exception;
 
 /** SPL use block. */
 use Exception;
