@@ -289,7 +289,7 @@ class Container implements ArrayAccess, ContainerInterface
                 $msg, $caught->getCode(), $caught
             );
         }
-        if (!is_array($return) {
+        if (!is_array($return)) {
             $type = (is_object($return))
                 ? get_class($return)
                 : gettype($return);
