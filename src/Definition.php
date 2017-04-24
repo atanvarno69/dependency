@@ -18,6 +18,8 @@ use Psr\Container\ContainerInterface;
  *
  * Provides a fluent interface to define multiple post-instantiation method
  * calls.
+ *
+ * @api
  */
 interface Definition
 {
@@ -44,8 +46,6 @@ interface Definition
     /**
      * Adds a method to call after object instantiation.
      *
-     * @api
-     *
      * @param string $name       Method name to call.
      * @param array  $parameters Parameters to pass to the method. To use an
      *      entry defined in the container, use `Container::entry()`.
@@ -56,8 +56,6 @@ interface Definition
     
     /**
      * Sets a property after object instantiation.
-     *
-     * @api
      *
      * @param string $name  Property name to set.
      * @param mixed  $value Value to set.

@@ -17,8 +17,11 @@ use Atanvarno\Dependency\Definition\{
 };
 
 if (!function_exists('Atanvarno\Dependency\entry')) {
+
     /**
      * Helper for referencing a container entry in a definition.
+     *
+     * @api
      *
      * @param string $id Container entry identifier.
      *
@@ -31,8 +34,11 @@ if (!function_exists('Atanvarno\Dependency\entry')) {
 }
 
 if (!function_exists('Atanvarno\Dependency\factory')) {
+
     /**
      * Helper for defining a container entry using a factory function/callable.
+     *
+     * @api
      *
      * @param callable $callable
      * @param array    $parameters
@@ -50,8 +56,11 @@ if (!function_exists('Atanvarno\Dependency\factory')) {
 }
 
 if (!function_exists('Atanvarno\Dependency\object')) {
+
     /**
      * Helper for defining an object container entry.
+     *
+     * @api
      *
      * @param string $className
      * @param array  $parameters
@@ -69,8 +78,11 @@ if (!function_exists('Atanvarno\Dependency\object')) {
 }
 
 if (!function_exists('Atanvarno\Dependency\value')) {
+
     /**
      * Helper for defining a generic value container entry.
+     *
+     * @api
      *
      * @param mixed $value
      * @param bool  $register

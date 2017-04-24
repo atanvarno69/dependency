@@ -17,10 +17,11 @@ use Psr\Container\ContainerExceptionInterface;
 /**
  * Atanvarno\Dependency\Exception\ContainerException
  *
- * @internal Exception implementing `ContainerExceptionInterface`.
+ * Base class for all package exceptions.
+ *
+ * Implements `Psr\Container\ContainerExceptionInterface`.
  */
 class ContainerException extends Exception implements
     ContainerExceptionInterface
 {
-    
 }

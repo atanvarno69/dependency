@@ -8,9 +8,6 @@
 
 namespace Atanvarno\Dependency\Test\Exception;
 
-/** SPL use block. */
-use Exception;
-
 /** PSR-11 use block. */
 use Psr\Container\ContainerExceptionInterface;
 
@@ -21,11 +18,17 @@ use PHPUnit\Framework\TestCase;
 use Atanvarno\Dependency\Exception\ContainerException;
 
 class ContainerExceptionTest extends TestCase
-{   
-    public function testContainerExceptionImplementsInterface()
+{
+    private $exception;
+
+    public function setUp()
     {
-        $exception = new ContainerException();
-        $this->assertInstanceOf(ContainerExceptionInterface::class, $exception);
-        $this->assertInstanceOf(Exception::class, $exception);
+        $this->exception = new ContainerException();
+    }
+
+    public function testIsThrowable()
+    {
+        $this->expectException(ContainerExceptionInterface::class);
+        throw $this->exception;
     }
 }

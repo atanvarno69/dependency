@@ -14,10 +14,11 @@ use Psr\Container\NotFoundExceptionInterface;
 /** 
  * Atanvarno\Dependency\Exception\NotFoundException
  *
- * @internal Exception implementing `NotFoundExceptionInterface`.
+ * Exception thrown when resolving a non-existent entry.
+ *
+ * Implements `Psr\Container\NotFoundExceptionInterface`.
  */
 class NotFoundException extends ContainerException implements
     NotFoundExceptionInterface
 {
-    
 }

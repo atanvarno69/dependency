@@ -9,6 +9,7 @@
 namespace Atanvarno\Dependency\Test;
 
 /** PHPUnit use block. */
+use Atanvarno\Dependency\Exception\ConfigurationException;
 use PHPUnit\Framework\TestCase;
 
 /** Package use block. */
@@ -23,76 +24,76 @@ class FunctionsTest extends TestCase
 {    
     public function testFunctionEntry()
     {
-        $result = entry('ID');
+        $result = entry('test');
         $this->assertInstanceOf(Entry::class, $result);
-        $this->assertAttributeEquals('ID', 'id', $result);
     }
-    
-    public function testFunctionFactoryDefaults()
+
+    public function testFunctionFactoryDefault()
     {
-        $callable = function(){return;};
+        $callable = function () { return; };
         $result = factory($callable);
         $this->assertInstanceOf(FactoryDefinition::class, $result);
-        $this->assertAttributeEquals([], 'actions', $result);
-        $this->assertAttributeEquals($callable, 'callable', $result);
-        $this->assertAttributeEquals([], 'parameters', $result);
-        $this->assertAttributeEquals(true, 'register', $result);
+        $this->assertTrue($result->isRegistered());
+        $this->assertAttributeSame([], 'parameters', $result);
     }
-    
+
     public function testFunctionFactoryWithParameters()
     {
-        $callable = function(){return;};
-        $parameters = ['A', 'B', 'C', 4];
+        $callable = function () { return; };
+        $parameters = ['A', new Entry('test'), 1];
         $result = factory($callable, $parameters);
-        $this->assertAttributeEquals($parameters, 'parameters', $result);
+        $this->assertAttributeSame($parameters, 'parameters', $result);
     }
-    
-    public function testFunctionFactoryWithFalseRegistration()
+
+    public function testFunctionFactoryNotRegistered()
     {
-        $callable = function(){return;};
+        $callable = function () { return; };
         $result = factory($callable, [], false);
-        $this->assertAttributeEquals(false, 'register', $result);
+        $this->assertFalse($result->isRegistered());
     }
-    
-    public function testFunctionObjectDefaults()
+
+    public function testFunctionObjectDefault()
     {
-        $name = TestCase::class;
-        $result = object($name);
+        $className = TestCase::class;
+        $result = object($className);
         $this->assertInstanceOf(ObjectDefinition::class, $result);
-        $this->assertAttributeEquals([], 'actions', $result);
-        $this->assertAttributeEquals($name, 'className', $result);
-        $this->assertAttributeEquals([], 'parameters', $result);
-        $this->assertAttributeEquals(true, 'register', $result);
+        $this->assertTrue($result->isRegistered());
+        $this->assertAttributeSame([], 'parameters', $result);
     }
-    
+
     public function testFunctionObjectWithParameters()
     {
-        $name = TestCase::class;
-        $parameters = ['A', 'B', 'C', 4];
-        $result = object($name, $parameters);
-        $this->assertAttributeEquals($parameters, 'parameters', $result);
+        $className = TestCase::class;
+        $parameters = ['A', new Entry('test'), 1];
+        $result = object($className, $parameters);
+        $this->assertAttributeSame($parameters, 'parameters', $result);
     }
-    
-    public function testFunctionObjectWithFalseRegistration()
+
+    public function testFunctionObjectNotRegistered()
     {
-        $name = TestCase::class;
-        $result = object($name, [], false);
-        $this->assertAttributeEquals(false, 'register', $result);
+        $className = TestCase::class;
+        $result = object($className, [], false);
+        $this->assertFalse($result->isRegistered());
     }
-    
-    public function testFunctionValueDefaults()
+
+    public function testFunctionObjectThrowsExceptionWithInvalidClassName()
     {
-        $value = 'A';
+        $this->expectException(ConfigurationException::class);
+        object('NotARealObject');
+    }
+
+    public function testFunctionValueDefault()
+    {
+        $value = 'test';
         $result = value($value);
         $this->assertInstanceOf(ValueDefinition::class, $result);
-        $this->assertAttributeEquals([], 'actions', $result);
-        $this->assertAttributeEquals($value, 'value', $result);
-        $this->assertAttributeEquals(true, 'register', $result);
+        $this->assertTrue($result->isRegistered());
     }
-    
-    public function testFunctionValueWithFalseRegistration()
+
+    public function testFunctionValueNotRegistered()
     {
-        $result = value('A', false);
-        $this->assertAttributeEquals(false, 'register', $result);
+        $value = 'test';
+        $result = value($value, false);
+        $this->assertFalse($result->isRegistered());
     }
 }

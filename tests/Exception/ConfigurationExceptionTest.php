@@ -9,26 +9,26 @@
 namespace Atanvarno\Dependency\Test\Exception;
 
 /** PSR-11 use block. */
-use Psr\Container\NotFoundExceptionInterface;
+use Psr\Container\ContainerExceptionInterface;
 
 /** PHPUnit use block. */
 use PHPUnit\Framework\TestCase;
 
 /** Package use block. */
-use Atanvarno\Dependency\Exception\NotFoundException;
+use Atanvarno\Dependency\Exception\ConfigurationException;
 
-class NotFoundExceptionTest extends TestCase
+class ConfigurationExceptionTest extends TestCase
 {
     private $exception;
 
     public function setUp()
     {
-        $this->exception = new NotFoundException();
+        $this->exception = new ConfigurationException();
     }
 
     public function testIsThrowable()
     {
-        $this->expectException(NotFoundExceptionInterface::class);
+        $this->expectException(ContainerExceptionInterface::class);
         throw $this->exception;
     }
 }
