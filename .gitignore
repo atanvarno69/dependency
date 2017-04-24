@@ -1,4 +1,7 @@
 # Managed by Composer
 composer.lock
 composer.phar
-/vendor/
+vendor/
+
+# Managed by CI
+build/
