@@ -9,13 +9,13 @@
 namespace Atanvarno\Dependency\Test;
 
 /** PHPUnit use block. */
-use Atanvarno\Dependency\Exception\ConfigurationException;
 use PHPUnit\Framework\TestCase;
 
 /** Package use block. */
 use function Atanvarno\Dependency\{
     entry, factory, object, value
 };
+use Atanvarno\Dependency\Exception\ConfigurationException;
 use Atanvarno\Dependency\Definition\{
     Entry, FactoryDefinition, ObjectDefinition, ValueDefinition
 };
