@@ -70,7 +70,7 @@ class ContainerTest extends TestCase
     public function testSetDelegate()
     {
         $delegate = $this->createMock(ContainerInterface::class);
-        $result = $this->container->setDelegate($child);
+        $result = $this->container->setDelegate($delegate);
         $this->assertSame($this->container, $result);
         $this->assertAttributeEquals($delegate, 'delegate', $result);
     }
