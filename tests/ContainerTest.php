@@ -51,7 +51,7 @@ class ContainerTest extends TestCase
     
     public function testAddChild()
     {
-        $child = $this->getMock(ContainerInterface::class);
+        $child = $this->createMock(ContainerInterface::class);
         $result = $this->container->addChild($child);
         $this->assertSame($this->container, $result);
         $this->assertAttributeEquals([$child], 'children', $result);
@@ -69,7 +69,7 @@ class ContainerTest extends TestCase
     
     public function testSetDelegate()
     {
-        $delegate = $this->getMock(ContainerInterface::class);
+        $delegate = $this->createMock(ContainerInterface::class);
         $result = $this->container->setDelegate($child);
         $this->assertSame($this->container, $result);
         $this->assertAttributeEquals($delegate, 'delegate', $result);
