@@ -50,7 +50,6 @@ class Container implements ArrayAccess, ContainerInterface
      * Builds a `Container` instance.
      *
      * @param Definition[]              $definitions Entry definitions.
-     * @param string                    $selfId      Id for the container.
      * @param CacheInterface|Entry|null $cache       PSR-16 cache.
      * @param string                    $cacheKey    Cache key for cached data.
      *
@@ -59,7 +58,6 @@ class Container implements ArrayAccess, ContainerInterface
      */
     public function __construct(
         array $definitions = [],
-        string $selfId = 'container',
         $cache = null,
         string $cacheKey = 'container'
     ) {
@@ -79,7 +77,7 @@ class Container implements ArrayAccess, ContainerInterface
         $this->registry = $this->resolveRegistry();
         $this->children = [];
         $this->delegate = null;
-        $this->set($selfId, $this);
+        $this->set('container', $this);
     }
 
     /**
@@ -218,6 +216,30 @@ class Container implements ArrayAccess, ContainerInterface
     public function setDelegate(ContainerInterface $delegate)
     {
         $this->delegate = $delegate;
+        return $this;
+    }
+
+    /**
+     * Sets the entry ID for the container itself.
+     *
+     * When instantiated, the container self ID will be 'container'. Use this
+     * method when a different ID is required.
+     *
+     * @param string $id New self ID.
+     *
+     * @throws ConfigurationException Given ID is an empty string.
+     *
+     * @return $this Fluent interface, allowing multiple calls to be chained.
+     */
+    public function setSelfId(string $id)
+    {
+        if (strlen($id) < 1) {
+            $msg = 'Self ID must be a non-zero length string';
+            throw new ConfigurationException($msg);
+        }
+        $currentKey = array_search($this, $this->registry);
+        $this->delete($currentKey);
+        $this->set($id, $this);
         return $this;
     }
 
