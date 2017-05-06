@@ -14,8 +14,10 @@ use Psr\Container\ContainerInterface;
 /** PHPUnit use block. */
 use PHPUnit\Framework\TestCase;
 
+/** PHPUnit Utility use block. */
+use Atanvarno\PHPUnit\CallProtectedMethodTrait;
+
 /** Package use block. */
-use Atanvarno\Dependency\Test\CallProtectedMethodTrait;
 use Atanvarno\Dependency\Definition;
 use Atanvarno\Dependency\Definition\ValueDefinition;
 

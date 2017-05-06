@@ -9,20 +9,20 @@
 namespace Atanvarno\Dependency\Test;
 
 /** SPL use block. */
-use ArrayAccess, TypeError;
+use ArrayAccess, Exception, TypeError;
 
 /** PSR-11 use block. */
-use Atanvarno\Dependency\Definition;
-use Atanvarno\Dependency\Exception\ConfigurationException;
-use Atanvarno\Dependency\Exception\ContainerException;
-use Psr\Container\ContainerInterface;
+use Psr\Container\{ContainerInterface, NotFoundExceptionInterface};
+
+/** PSR-16 use block. */
+use Psr\SimpleCache\{CacheException, CacheInterface};
 
 /** PHPUnit use block. */
 use PHPUnit\Framework\TestCase;
 
 /** Package use block. */
-use Atanvarno\Dependency\Container;
-use Psr\SimpleCache\CacheInterface;
+use Atanvarno\Dependency\{Container, Definition};
+use Atanvarno\Dependency\Exception\{ConfigurationException, ContainerException};
 
 class ContainerTest extends TestCase
 {
@@ -69,6 +69,22 @@ class ContainerTest extends TestCase
         $this->assertAttributeEquals($cache, 'cache', $container);
     }
 
+    public function testConstructorWithCacheFromDefinition()
+    {
+        $cache = $this->createMock(CacheInterface::class);
+        $cache->method('get')->willReturn([]);
+        $callable = function($cache) {return $cache;};
+        $container = new Container(
+            [
+                'cache' => new Definition\FactoryDefinition(
+                    $callable, [$cache], true
+                ),
+            ],
+            'cache'
+        );
+        $this->assertAttributeEquals($cache, 'cache', $container);
+    }
+
     public function testConstructorWithCacheKey()
     {
         $container = new Container([], null, 'test key');
@@ -81,10 +97,79 @@ class ContainerTest extends TestCase
         new Container(['test' => 'value']);
     }
 
-    public function testConstructorRejectsInvalidCache()
+    public function testConstructorRejectsInvalidCacheIdentifierType()
+    {
+        $this->expectException(ContainerException::class);
+        new Container([], 1);
+    }
+
+    public function testConstructorRejectsInvalidCacheStringEntryIdentifier()
     {
         $this->expectException(ContainerException::class);
         new Container([], 'invalid');
+    }
+
+    public function testConstructorRejectsInvalidCacheResolutionFromDefinition()
+    {
+        $this->expectException(ContainerException::class);
+        new Container(
+            [
+                'invalid' => new Definition\ObjectDefinition(
+                    Container::class, [], true
+                ),
+            ],
+            'invalid'
+        );
+    }
+
+    public function testConstructorBubblesCacheGetError()
+    {
+        $cache = $this->createMock(CacheInterface::class);
+        $cache->method('get')->willThrowException(
+            new class() extends Exception implements CacheException {}
+        );
+        $callable = function($cache) {return $cache;};
+        $this->expectException(ConfigurationException::class);
+        new Container(
+            [
+                'cache' => new Definition\FactoryDefinition(
+                    $callable, [$cache], true
+                ),
+            ],
+            'cache'
+        );
+    }
+
+    public function testConstructorRejectsInvalidPrimitiveReturnFromCache()
+    {
+        $cache = $this->createMock(CacheInterface::class);
+        $cache->method('get')->willReturn('invalid');
+        $callable = function($cache) {return $cache;};
+        $this->expectException(ConfigurationException::class);
+        new Container(
+            [
+                'cache' => new Definition\FactoryDefinition(
+                    $callable, [$cache], true
+                ),
+            ],
+            'cache'
+        );
+    }
+
+    public function testConstructorRejectsInvalidObjectReturnFromCache()
+    {
+        $cache = $this->createMock(CacheInterface::class);
+        $cache->method('get')->willReturn($this->container);
+        $callable = function($cache) {return $cache;};
+        $this->expectException(ConfigurationException::class);
+        $container = new Container(
+            [
+                'cache' => new Definition\FactoryDefinition(
+                    $callable, [$cache], true
+                ),
+            ],
+            'cache'
+        );
     }
 
     public function testConstructorRejectsInvalidCacheKey()
@@ -93,8 +178,6 @@ class ContainerTest extends TestCase
         new Container([], null, '');
     }
 
-    // todo: various cache resolution options.
-    
     public function testAddChild()
     {
         $child = $this->createMock(ContainerInterface::class);
@@ -133,11 +216,68 @@ class ContainerTest extends TestCase
         $this->assertAttributeEquals([], 'definitions', $this->container);
     }
 
-    // todo: delete has cache interactions.
-    
-    // todo: test self get vs composite get.
-    
-    // todo: test self has vs composite has.
+    // todo: delete() - cache interactions.
+
+    public function testGetFromDefinition()
+    {
+        $container = new Container(
+            [
+                'test ID' => new Definition\ObjectDefinition(
+                    Container::class, [], true
+                ),
+            ]
+        );
+        $result = $container->get('test ID');
+        $this->assertInstanceOf(Container::class, $result);
+        $this->assertNotSame($container, $result);
+    }
+
+    public function testGetFromRegistry()
+    {
+        $result = $this->container->get('container');
+        $this->assertSame($this->container, $result);
+    }
+
+    public function testCompositeGetChecksSelfFirst()
+    {
+        $child = $this->createMock(ContainerInterface::class);
+        $child->expects($this->never())->method('has');
+        $this->container->addChild($child);
+        $result = $this->container->get('container');
+        $this->assertSame($this->container, $result);
+    }
+
+    public function testCompositeGetGetsFromChildren()
+    {
+        $child = new Container();
+        $this->container->setSelfId('parent');
+        $this->container->addChild($child);
+        $result = $this->container->get('container');
+        $this->assertSame($child, $result);
+    }
+
+    public function testGetRejectsUnknownId()
+    {
+        $this->expectException(NotFoundExceptionInterface::class);
+        $this->container->get('invalid');
+    }
+
+    public function testCompositeGetRejectsUnknownId()
+    {
+        $child = new Container();
+        $this->container->addChild($child);
+        $this->expectException(NotFoundExceptionInterface::class);
+        $this->container->get('invalid');
+    }
+
+    public function testGetRejectsNonStringParameter()
+    {
+        $this->expectException(TypeError::class);
+        $this->container->get(1);
+    }
+
+    // todo: get() - cache interactions.
+
     public function testHasWithValidDefinitionValue()
     {
         $definition = $this->createMock(Definition::class);
@@ -196,8 +336,7 @@ class ContainerTest extends TestCase
         $this->expectException(TypeError::class);
         $this->container->has(1);
     }
-    
-    // todo: test ArrayAccess methods.
+
     public function testOffsetExistsWithValidValue()
     {
         $result = isset($this->container['container']);
@@ -208,6 +347,26 @@ class ContainerTest extends TestCase
     {
         $result = isset($this->container['invalid']);
         $this->assertFalse($result);
+    }
+
+    public function testOffsetGetWithDefinition()
+    {
+        $container = new Container(
+            [
+                'test ID' => new Definition\ObjectDefinition(
+                    Container::class, [], true
+                ),
+            ]
+        );
+        $result = $container['test ID'];
+        $this->assertInstanceOf(Container::class, $result);
+        $this->assertNotSame($container, $result);
+    }
+
+    public function testOffsetGetWithValue()
+    {
+        $result = $this->container['container'];
+        $this->assertSame($this->container, $result);
     }
 
     public function testOffsetSetWithDefinition()
@@ -256,8 +415,6 @@ class ContainerTest extends TestCase
         unset($this->container['definition entry']);
         $this->assertAttributeEquals([], 'definitions', $this->container);
     }
-    
-    // todo: test set has cache interactions.
 
     public function testSetWithDefinition()
     {
@@ -287,6 +444,8 @@ class ContainerTest extends TestCase
         $this->assertSame($this->container, $result);
         $this->assertAttributeEquals($delegate, 'delegate', $result);
     }
+
+    // todo: set() - cache interactions.
 
     public function testSetSelfId()
     {

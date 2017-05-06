@@ -303,12 +303,7 @@ class Container implements ArrayAccess, ContainerInterface
         }
         /** @var Definition $definition */
         $definition = $this->definitions[$id];
-        try {
-            $return = $definition->build($this->delegate ?? $this);
-        } catch (Throwable $caught) {
-            $msg = sprintf('Could not build "%s" from definition', $id);
-            throw new ContainerException($msg, $caught->getCode(), $caught);
-        }
+        $return = $definition->build($this->delegate ?? $this);
         if ($definition->isRegistered()) {
             $this->registry[$id] = $return;
             $this->updateCache();

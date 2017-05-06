@@ -39,9 +39,11 @@ trait DefinitionTrait
         if (!is_object($return)) {
             return $return;
         }
-        /** @var InstanceAction $action */
-        foreach ($this->actions as $action) {
-            $return = $action($return, $container);
+        if (!empty($this->actions)) {
+            /** @var InstanceAction $action */
+            foreach ($this->actions as $action) {
+                $return = $action($return, $container);
+            }
         }
         return $return;
     }
