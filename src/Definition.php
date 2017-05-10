@@ -16,8 +16,7 @@ use Psr\Container\ContainerInterface;
  *
  * A definition for a lazy loaded `Container` entry.
  *
- * Provides a fluent interface to define multiple post-instantiation method
- * calls.
+ * Provides a fluent interface to define multiple post-instantiation actions.
  *
  * @api
  */
@@ -46,16 +45,21 @@ interface Definition
     /**
      * Adds a method to call after object instantiation.
      *
+     * Note if the definition does not define an object, adding a method to
+     * call will do nothing.
+     *
      * @param string $name       Method name to call.
-     * @param array  $parameters Parameters to pass to the method. To use an
-     *      entry defined in the container, use `Container::entry()`.
+     * @param array  $parameters A list of parameters to pass to the method.
      *
      * @return $this Fluent interface, allowing multiple calls to be chained.
      */
     public function method(string $name, array $parameters = []): Definition;
     
     /**
-     * Sets a property after object instantiation.
+     * Sets a public property after object instantiation.
+     *
+     * Note if the definition does not define an object, setting a property
+     * will do nothing.
      *
      * @param string $name  Property name to set.
      * @param mixed  $value Value to set.
