@@ -23,9 +23,9 @@ if (!function_exists('Atanvarno\Dependency\entry')) {
      *
      * @api
      *
-     * @param string $id Container entry identifier.
+     * @param string $id Container entry identifier to reference.
      *
-     * @return Entry
+     * @return Entry A reference to the container entry.
      */
     function entry(string $id): Entry
     {
@@ -40,17 +40,19 @@ if (!function_exists('Atanvarno\Dependency\factory')) {
      *
      * @api
      *
-     * @param callable $callable
-     * @param array    $parameters
-     * @param bool     $register
+     * @param callable $callable   A callable that returns the desired value.
+     * @param array    $parameters A list of parameters to pass to the given
+     *      callable.
+     * @param bool     $register   Whether the entry returned should be
+     *      registered by the container.
      *
-     * @return FactoryDefinition
+     * @return Definition A container definition.
      */
     function factory(
         callable $callable,
         array $parameters = [],
         bool $register = true
-    ): FactoryDefinition {
+    ): Definition {
         return new FactoryDefinition($callable, $parameters, $register);
     }
 }
@@ -62,17 +64,20 @@ if (!function_exists('Atanvarno\Dependency\object')) {
      *
      * @api
      *
-     * @param string $className
-     * @param array  $parameters
-     * @param bool   $register
+     * @param string $className  The class name of the object to define. Use of
+     *      the`::class` constant is recommended.
+     * @param array  $parameters A list of parameters to pass to the given
+     *      class's constructor.
+     * @param bool   $register   Whether the entry returned should be
+     *      registered by the container.
      *
-     * @return ObjectDefinition
+     * @return Definition A container definition.
      */
     function object(
         string $className,
         array $parameters = [],
         bool $register = true
-    ): ObjectDefinition {
+    ): Definition {
         return new ObjectDefinition($className, $parameters, $register);
     }
 }
@@ -84,12 +89,13 @@ if (!function_exists('Atanvarno\Dependency\value')) {
      *
      * @api
      *
-     * @param mixed $value
-     * @param bool  $register
+     * @param mixed $value    The value the container should return.
+     * @param bool  $register Whether the value returned should be
+     *      registered by the container.
      *
-     * @return ValueDefinition
+     * @return Definition A container definition.
      */
-    function value($value, bool $register = true): ValueDefinition
+    function value($value, bool $register = true): Definition
     {
         return new ValueDefinition($value, $register);
     }

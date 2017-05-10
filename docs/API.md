@@ -10,7 +10,7 @@ container, implementing `ContainerInterface` and [`ArrayAccess`](http://php.net/
 * [Atanvarno\Dependency\Exception\NotFoundException](NotFoundException.md)
 
 ## Functions
-* [Atanvarno\Dependency\entry()](entry.md)
-* [Atanvarno\Dependency\factory()](factory.md)
-* [Atanvarno\Dependency\object()](object.md)
-* [Atanvarno\Dependency\value()](value.md)
+* [Atanvarno\Dependency\entry()](Functions.md#entry)
+* [Atanvarno\Dependency\factory()](Functions.md#factory)
+* [Atanvarno\Dependency\object()](Functions.md#object)
+* [Atanvarno\Dependency\value()](Functions.md#value)
