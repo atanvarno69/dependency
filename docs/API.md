@@ -5,6 +5,7 @@ container, implementing `ContainerInterface` and [`ArrayAccess`](http://php.net/
 ## Classes & Interfaces
 * [Atanvarno\Dependency\Container](Container.md)
 * [Atanvarno\Dependency\Definition](Definition.md)
+* [Atanvarno\Dependency\Definition\Entry](Entry.md)
 * [Atanvarno\Dependency\Exception\ConfigurationException](ConfigurationException.md)
 * [Atanvarno\Dependency\Exception\ContainerException](ContainerException.md)
 * [Atanvarno\Dependency\Exception\NotFoundException](NotFoundException.md)
