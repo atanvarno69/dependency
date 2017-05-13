@@ -9,7 +9,7 @@
 namespace Atanvarno\Dependency;
 
 /** SPL use block. */
-use ArrayAccess, Throwable, TypeError;
+use ArrayAccess, TypeError;
 
 /** PSR-11 use block. */
 use Psr\Container\{ContainerInterface, ContainerExceptionInterface};
@@ -85,13 +85,33 @@ class Container implements ArrayAccess, ContainerInterface
      *
      * This will make the container act as a composite container.
      *
-     * @param ContainerInterface $child
+     * @param ContainerInterface $child Child container to add.
      *
      * @return $this Fluent interface, allowing multiple calls to be chained.
      */
-    public function addChild(ContainerInterface $child)
+    public function addChild(ContainerInterface $child): Container
     {
         $this->children[] = $child;
+        return $this;
+    }
+
+    /**
+     * Clear the container's cached values.
+     *
+     * If no cache has been set, this method will do nothing.
+     *
+     * @throws ContainerException Unable to clear cache.
+     *
+     * @return $this Fluent interface, allowing multiple calls to be chained.
+     */
+    public function clearCache(): Container
+    {
+        if (isset($this->cache)) {
+            $value = $this->cache->delete($this->cacheKey);
+            if ($value === false) {
+                throw new ContainerException('Unable to clear cache');
+            }
+        }
         return $this;
     }
 
@@ -102,7 +122,7 @@ class Container implements ArrayAccess, ContainerInterface
      *
      * @return $this Fluent interface, allowing multiple calls to be chained.
      */
-    public function delete(string $id)
+    public function delete(string $id): Container
     {
         if (isset($this->registry[$id])) {
             unset($this->registry[$id]);
@@ -119,7 +139,9 @@ class Container implements ArrayAccess, ContainerInterface
      *
      * @param string $id Entry to retrieve.
      *
-     * @throws TypeError Given $id is not a string.
+     * @throws TypeError          Given $id is not a string.
+     * @throws NotFoundException  No entry was found for this identifier.
+     * @throws ContainerException Error while retrieving the entry.
      *
      * @return mixed The entry.
      */
@@ -160,39 +182,91 @@ class Container implements ArrayAccess, ContainerInterface
             : $this->selfHas($id);
     }
 
-    /** @inheritdoc */
+    /**
+     * Checks if an offset (entry) exists.
+     *
+     * `ArrayAccess` method executed when using `isset()` and `empty()` on a
+     * `Container` object using array syntax.
+     *
+     * Calls `has()` internally.
+     *
+     * @param mixed $offset Offset (entry) to check for. The value will be
+     *      cast to `string`.
+     *
+     * @return bool `true` if the offset (entry) exists, `false` otherwise.
+     */
     public function offsetExists($offset): bool
     {
-        return $this->has($offset);
-    }
-
-    /** @inheritdoc */
-    public function offsetGet($offset)
-    {
-        return $this->get($offset);
-    }
-
-    /** @inheritdoc */
-    public function offsetSet($offset, $value)
-    {
-        $this->set($offset, $value);
-    }
-
-    /** @inheritdoc */
-    public function offsetUnset($offset)
-    {
-        $this->delete($offset);
+        return $this->has((string) $offset);
     }
 
     /**
-     * Adds an entry to the container.
+     * Retrieves an offset (entry) from the container.
      *
-     * @param string $id    Entry ID to add.
+     * `ArrayAccess` method executed when using array syntax on a `Container`
+     * object.
+     *
+     * Calls `get()` internally.
+     *
+     * @param mixed $offset Offset (entry) to retrieve. The value will be cast
+     *      to `string`.
+     *
+     * @throws NotFoundException  No entry was found for this offset.
+     * @throws ContainerException Error while retrieving the offset.
+     *
+     * @return mixed The entry.
+     */
+    public function offsetGet($offset)
+    {
+        return $this->get((string) $offset);
+    }
+
+    /**
+     * Assigns a value to the specified offset (identifier).
+     *
+     * `ArrayAccess` method executed when using array syntax on a `Container`
+     * object.
+     *
+     * Calls `set()` internally.
+     *
+     * @param mixed  $offset Offset (identifier) to add. The value will be cast
+     *      to `string`.
+     * @param mixed  $value  Entry value.
+     *
+     * @return void
+     */
+    public function offsetSet($offset, $value)
+    {
+        $this->set((string) $offset, $value);
+    }
+
+    /**
+     * Unsets (deletes) an offset (entry) from the container.
+     *
+     * `ArrayAccess` method executed when using `unset()` on a `Container`
+     * object using array syntax.
+     *
+     * Calls `delete()` internally.
+     *
+     * @param mixed $offset Offset (entry) to unset (delete). The value will be
+     *      cast to `string`.
+     *
+     * @return void
+     */
+    public function offsetUnset($offset)
+    {
+        $this->delete((string) $offset);
+    }
+
+    /**
+     * Assigns a value to the specified identifier.
+     *
+     * @param string $id    Identifier to assign.
      * @param mixed  $value Entry value.
      *
      * @return $this Fluent interface, allowing multiple calls to be chained.
      */
-    public function set(string $id, $value)
+    public function set(string $id, $value): Container
     {
         $this->delete($id);
         if ($value instanceof Definition) {
@@ -205,33 +279,31 @@ class Container implements ArrayAccess, ContainerInterface
     }
 
     /**
-     * Sets a delegate container.
-     *
-     * Dependency resolution will be delegated to the given container.
+     * Sets a container to delegate dependency resolution to.
      *
      * @param ContainerInterface $delegate Delegate container.
      *
      * @return $this Fluent interface, allowing multiple calls to be chained.
      */
-    public function setDelegate(ContainerInterface $delegate)
+    public function setDelegate(ContainerInterface $delegate): Container
     {
         $this->delegate = $delegate;
         return $this;
     }
 
     /**
-     * Sets the entry ID for the container itself.
+     * Sets the entry identifier for the container itself.
      *
-     * When instantiated, the container self ID will be 'container'. Use this
-     * method when a different ID is required.
+     * When instantiated, the container self identifier will be 'container'.
+     * Use this method when a different identifier is required.
      *
-     * @param string $id New self ID.
+     * @param string $id Identifier to assign to the container.
      *
-     * @throws ConfigurationException Given ID is an empty string.
+     * @throws ConfigurationException Given identifier is an empty string.
      *
      * @return $this Fluent interface, allowing multiple calls to be chained.
      */
-    public function setSelfId(string $id)
+    public function setSelfId(string $id): Container
     {
         if (strlen($id) < 1) {
             $msg = 'Self ID must be a non-zero length string';

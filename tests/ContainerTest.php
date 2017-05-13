@@ -162,7 +162,7 @@ class ContainerTest extends TestCase
         $cache->method('get')->willReturn($this->container);
         $callable = function($cache) {return $cache;};
         $this->expectException(ConfigurationException::class);
-        $container = new Container(
+        new Container(
             [
                 'cache' => new Definition\FactoryDefinition(
                     $callable, [$cache], true
@@ -184,6 +184,37 @@ class ContainerTest extends TestCase
         $result = $this->container->addChild($child);
         $this->assertSame($this->container, $result);
         $this->assertAttributeEquals([$child], 'children', $result);
+    }
+
+    public function testClearCache()
+    {
+        $cache = $this->createMock(CacheInterface::class);
+        $cache->method('get')->willReturn([]);
+        $cache->expects($this->once())
+            ->method('delete')
+            ->with('container')
+            ->willReturn(true);
+        $container = new Container([], $cache);
+        $container->clearCache();
+    }
+
+    public function testClearCacheDoesNothingWithoutACacheSet()
+    {
+        $result = $this->container->clearCache();
+        $this->assertSame($this->container, $result);
+    }
+
+    public function testClearCacheThrowsExceptionIfCacheCannotBeCleared()
+    {
+        $cache = $this->createMock(CacheInterface::class);
+        $cache->method('get')->willReturn([]);
+        $cache->expects($this->once())
+            ->method('delete')
+            ->with('container')
+            ->willReturn(false);
+        $container = new Container([], $cache);
+        $this->expectException(ContainerException::class);
+        $container->clearCache();
     }
 
     public function testDeleteOnRegistryKey()

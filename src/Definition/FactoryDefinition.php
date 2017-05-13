@@ -44,10 +44,7 @@ class FactoryDefinition implements Definition
     
     protected function factoryMethod(ContainerInterface $container)
     {
-        $callable = (is_array($this->callable))
-            ? $this->resolveParameter($this->callable, $container)
-            : $this->callable;
         $parameters = $this->resolveParameter($this->parameters, $container);
-        return call_user_func($callable, ...$parameters);
+        return call_user_func($this->callable, ...$parameters);
     }
 }

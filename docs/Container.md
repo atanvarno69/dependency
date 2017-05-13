@@ -29,13 +29,18 @@ unset($container['ID']);    $container->delete('ID');
 Note that unlike a normal array, only `string` identifiers will be accepted by the array syntax (as [PSR-11](http://www.php-fig.org/psr/psr-11/#21-psrcontainercontainerinterface) only permits `string` identifiers); using `int` (or other) identifier types with array syntax will silently fail.
 
 * [__construct](#__construct)
-* [add](#add)
-* [define](#define)
+* [addChild](#addChild)
+* [clearCache](#clearCache)
 * [delete](#delete)
-* [entry](#entry)
-* [factory](#factory)
 * [get](#get)
 * [has](#has)
+* [offsetExists](#offsetExists)
+* [offsetGet](#offsetGet)
+* [offsetSet](#offsetSet)
+* [offsetUnset](#offsetUnset)
+* [set](#set)
+* [setDelegate](#setDelegate)
+* [setSelfId](#setSelfId)
 
 ## __construct
 ```php
@@ -56,154 +61,104 @@ Nothing is thrown.
 ### Returns
 A `Container` instance.
 
-## add
-Adds an entry to the container.
+## addChild
+Adds a child container.
 ```php
-add(string $id, mixed $value): Container
+public function addChild(ContainerInterface $child): Container
 ```
-An entry can be of any type. To define a lazy loaded class, use [`define()`](#define) or [`factory()`](#factory).
+This will make the container act as a composite container.
 
 ### Parameters
-* `string` **$id**
+* [`ContainerInterface`](http://www.php-fig.org/psr/psr-11/#21-psrcontainercontainerinterface) **$child**
 
-  Identifier of the entry to set.
-
-* `mixed` **$value**
-
-   Value of the entry to set.
+  Child container to add.
 
 ### Throws
 Nothing is thrown.
 
 ### Returns
-* `Definition` **$this**
+* `Container` **$this**
 
-  [fluent interface](https://en.wikipedia.org/wiki/Fluent_interface), allowing multiple calls to be chained.
+  [fluent interface](https://en.wikipedia.org/wiki/Fluent_interface), allowing 
+  multiple calls to be chained.
 
-## define
-Adds a class definition for lazy loading.
+## clearCache
+Clear the container's cached values.
 ```php
-define(string $className, array $parameters, bool $register = true): Definition
+public function clearCache(): Container
 ```
-After first instantiation, the same instance will be returned by `get()` on each call. If this is not the desired behaviour, you should set the third parameter to `false`.
+If no cache has been set, this method will do nothing.
+
 ### Parameters
-* `string` **$className**
-
-  The name of the defined class. Using the [`::class` keyword](http://php.net/manual/en/language.oop5.basic.php#language.oop5.basic.class.class) is recommended.
-
-* `mixed` **...$parameters**
-
-  Optional. Defaults to `[]`. Values to pass to the class constructor.
-
-* `bool` **$register**
-
-  Optional. Defaults to `true`. Whether the entry should be registered.
+* `void`
 
 ### Throws
-* `InvalidArgumentException`
+* [`ContainerException`](ConfigurationException.md)
 
-  The given class name does not exist.
+  Unable to clear cache.
 
 ### Returns
-* [`Definition`](Definition.md)
+* `Container` **$this**
+
+  [fluent interface](https://en.wikipedia.org/wiki/Fluent_interface), allowing 
+  multiple calls to be chained.
 
 ## delete
 Deletes an entry from the container.
 ```php
-delete(string $id): Container
+public function delete(string $id): Container
 ```
 ### Parameters
 * `string` **$id**
 
-  Identifier of the entry to delete.
+  Entry to delete.
 
 ### Throws
 Nothing is thrown.
 
 ### Returns
-* `Definition` **$this**
+* `Container` **$this**
 
-  [fluent interface](https://en.wikipedia.org/wiki/Fluent_interface), allowing multiple calls to be chained.
-
-## entry
-Use a container entry as a parameter for a lazy loading definition.
-```php
-entry(string $id): EntryProxy
-```
-### Parameters
-* `string` **$id**
-
-  Identifier of the entry to reference.
-
-### Throws
-Nothing is thrown.
-
-### Returns
-* `EntryProxy`
-
-  When an `EntryProxy` is encountered in a parameter list while resolving a definition it is replaced with the container entry with the given identifier.
-
-## factory
-Adds a factory callable for lazy loading.
-```php
-factory(callable $callable, array $parameters = [], $register = true): Definition
-```
-After first instantiation, the same instance will be returned by `get()` on each call. If this is not the desired behaviour, you should set the third parameter to `false`.
-
-### Parameters
-* `string` **$className**
-
-  The name of the defined class. Using the [`::class` keyword](http://php.net/manual/en/language.oop5.basic.php#language.oop5.basic.class.class) is recommended.
-
-* `mixed` **...$parameters**
-
-  Optional. Defaults to `[]`. Values to pass to the class constructor.
-
-* `bool` **$register**
-
-  Optional. Defaults to `true`. Whether the entry should be registered.
-
-### Throws
-Nothing is thrown.
-
-### Returns
-* [`Definition`](Definition.md)
+  [fluent interface](https://en.wikipedia.org/wiki/Fluent_interface), allowing 
+  multiple calls to be chained.
 
 ## get
-Finds an entry of the container by its identifier and returns it.
+Retrieves an entry from the container.
 ```php
-get(string $id): mixed
+public function get(string $id)
 ```
 ### Parameters
 * `string` **$id**
 
-  Identifier of the entry to look for.
+  Entry to retrieve.
 
 ### Throws
-* `NotFoundExceptionInterface`
+* [`NotFoundException`](NotFoundException.md)
 
   No entry was found for this identifier.
 
-* `ContainerExceptionInterface`
+* [`ContainerException`](ConfigurationException.md)
 
   Error while retrieving the entry.
 
 ### Returns
 * `mixed`
 
-  Entry.
+  The entry.
 
 ## has
-Returns `true` if the container can return an entry for the given identifier. Returns `false` otherwise.
+Checks if an entry exists.
 ```php
-has(string $id): bool
+public function has(string $id): bool
 ```
-`has($id)` returning `true` does not mean that [`get($id)`](#get) will not throw an exception. It does however mean that [`get($id)`](#get) will not throw a `NotFoundExceptionInterface`.
+If the container is acting as a composite container (it has children), this 
+method will check for a matching entry in itself first, then in its children.
+
 ### Parameters
 #### id
 * `string` **$id**
 
-  Identifier of the entry to look for.
+  Entry to check for.
 
 ### Throws
 Nothing is thrown.
@@ -211,4 +166,174 @@ Nothing is thrown.
 ### Returns
 * `bool`
 
-  `true` if the container can return an entry for the given identifier. `false` otherwise.
+  `true` if the entry exists, `false` otherwise.
+
+## offsetExists
+Checks if an entry (offset) exists.
+```php
+public function offsetExists($offset): bool
+```
+[`ArrayAccess`](http://php.net/manual/en/class.arrayaccess.php) method executed 
+when using [`isset()`](http://php.net/manual/en/function.isset.php) and 
+[`empty()`](http://php.net/manual/en/function.empty.php) on a `Container` 
+object using array syntax.
+
+Calls [`has()`](#has) internally.
+
+### Parameters
+#### id
+* `mixed` **$offset**
+
+  Offset (entry) to check for. The value will be cast to `string`.
+
+### Throws
+Nothing is thrown.
+
+### Returns
+* `bool`
+
+  `true` if the offset (entry) exists, `false` otherwise.
+  
+## offsetGet
+Retrieves an offset (entry) from the container.
+```php
+public function offsetGet($offset)
+```
+[`ArrayAccess`](http://php.net/manual/en/class.arrayaccess.php) method executed 
+when using array syntax on a `Container` object.
+
+Calls [`get()`](#get) internally.
+
+### Parameters
+* `mixed` **$offset**
+
+  Offset (entry) to retrieve. The value will be cast to `string`.
+
+### Throws
+* [`NotFoundException`](NotFoundException.md)
+
+  No entry was found for this offset.
+
+* [`ContainerException`](ConfigurationException.md)
+
+  Error while retrieving the offset.
+
+### Returns
+* `mixed`
+
+  The entry.
+
+## offsetSet
+Assigns a value to the specified offset (identifier).
+```php
+public function offsetSet($offset, $value)
+```
+[`ArrayAccess`](http://php.net/manual/en/class.arrayaccess.php) method executed 
+when using array syntax on a `Container` object.
+
+Calls [`set()`](#set) internally.
+
+### Parameters
+* `mixed` **$offset**
+
+  Offset (identifier) to add. The value will be cast to `string`.
+
+* `mixed` **&value**
+  
+  Entry value.
+
+### Throws
+Nothing is thrown.
+
+### Returns
+* `void`
+
+## offsetUnset
+Unsets (deletes) an offset (entry) from the container.
+```php
+public function offsetUnset($offset)
+```
+[`ArrayAccess`](http://php.net/manual/en/class.arrayaccess.php) method executed 
+when using [`unset()`](http://php.net/manual/en/function.unset.php) on a 
+`Container` object using array syntax.
+
+Calls [`delete()`](#delete) internally.
+
+### Parameters
+* `mixed` **$offset**
+
+  Offset (identifier) to unset (delete). The value will be cast to `string`.
+
+### Throws
+Nothing is thrown.
+
+### Returns
+* `void`
+
+## set
+Assign a value to the specified identifier.
+```php
+public function set(string $id, $value): Container
+```
+
+### Parameters
+* `string` **$id**
+
+  Identifier to assign.
+
+* `mixed` **&value**
+  
+  Entry value.
+
+### Throws
+Nothing is thrown.
+
+### Returns
+* `Container` **$this**
+
+  [fluent interface](https://en.wikipedia.org/wiki/Fluent_interface), allowing 
+  multiple calls to be chained.
+
+## setDelegate
+Sets a container to delegate dependency resolution to.
+```php
+public function setDelegate(ContainerInterface $delegate): Container
+```
+
+### Parameters
+* [`ContainerInterface`](http://www.php-fig.org/psr/psr-11/#21-psrcontainercontainerinterface) **$delegate**
+
+  Delegate container.
+
+### Throws
+Nothing is thrown.
+
+### Returns
+* `Container` **$this**
+
+  [fluent interface](https://en.wikipedia.org/wiki/Fluent_interface), allowing 
+  multiple calls to be chained.
+
+## setSelfId
+Sets the entry identifier for the container itself.
+```php
+public function setSelfId(string $id): Container
+```
+When instantiated, the container self identifier will be `container`. Use this 
+method when a different identifier is required.
+
+### Parameters
+* `string` **$id**
+
+  Identifier to assign to the container.
+
+### Throws
+* [`ConfigurationException`](ConfigurationException.md)
+
+  Given identifier is an empty string.
+
+### Returns
+* `Container` **$this**
+
+  [fluent interface](https://en.wikipedia.org/wiki/Fluent_interface), allowing 
+  multiple calls to be chained.

@@ -60,29 +60,4 @@ class FactoryDefinitionTest extends TestCase
         );
         $this->assertSame('test', $result);
     }
-
-    public function testFactoryMethodWithResolvableCallable()
-    {
-        $callable = [new Entry('entryID'), 'testFunction'];
-        $definition = new FactoryDefinition($callable, [], true);
-        $container = $this->createMock(ContainerInterface::class);
-        $container->expects($this->once())
-            ->method('get')
-            ->with($this->stringContains('entryID'))
-            ->willReturn(new TestCallableMock);
-        $result = $this->callProtectedMethod(
-            $definition,
-            'factoryMethod',
-            [$container]
-        );
-        $this->assertSame('test', $result);
-    }
-}
-
-class TestCallableMock
-{
-    public function testFunction()
-    {
-        return 'test';
-    }
 }
