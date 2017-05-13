@@ -11,7 +11,8 @@ namespace Atanvarno\Dependency\Definition;
 /**
  * Atanvarno\Dependency\Definition\Entry
  *
- * @internal For use as a proxy parameter for a container entry.
+ * @internal Represents a container entry in definitions. Returned by the
+ * helper function `entry()`.
  */
 class Entry
 {

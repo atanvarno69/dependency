@@ -8,12 +8,15 @@
 
 namespace Atanvarno\Dependency\Definition;
 
+/** SPL use block. */
+use Throwable;
+
 /** PSR-11 use block. */
 use Psr\Container\ContainerInterface;
 
 /** Package use block. */
 use Atanvarno\Dependency\{
-    Definition, Exception\ConfigurationException
+    Definition, Exception\ConfigurationException, Exception\RuntimeException
 };
 
 class ObjectDefinition implements Definition
@@ -39,6 +42,12 @@ class ObjectDefinition implements Definition
     protected function factoryMethod(ContainerInterface $container)
     {
         $parameters = $this->resolveParameter($this->parameters, $container);
-        return new $this->className(...$parameters);
+        try {
+            $return = new $this->className(...$parameters);
+        } catch (Throwable $caught) {
+            $msg = sprintf('Encountered error: %s', $caught->getMessage());
+            throw new RuntimeException($msg, $caught->getCode(), $caught);
+        }
+        return $return;
     }
 }

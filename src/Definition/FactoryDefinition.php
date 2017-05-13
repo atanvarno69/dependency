@@ -8,11 +8,16 @@
 
 namespace Atanvarno\Dependency\Definition;
 
+/** SPL use block. */
+use Throwable;
+
 /** PSR-11 use block. */
 use Psr\Container\ContainerInterface;
 
 /** Package use block. */
-use Atanvarno\Dependency\Definition;
+use Atanvarno\Dependency\{
+    Definition, Exception\RuntimeException
+};
 
 /**
  * Atanvarno\Dependency\Definition\FactoryDefinition
@@ -33,7 +38,7 @@ class FactoryDefinition implements Definition
     private $callable, $parameters;
     
     public function __construct(
-        $callable,
+        callable $callable,
         array $parameters,
         bool $register
     ) {
@@ -45,6 +50,12 @@ class FactoryDefinition implements Definition
     protected function factoryMethod(ContainerInterface $container)
     {
         $parameters = $this->resolveParameter($this->parameters, $container);
-        return call_user_func($this->callable, ...$parameters);
+        try {
+            $return = call_user_func($this->callable, ...$parameters);
+        } catch (Throwable $caught) {
+            $msg = sprintf('Encountered error: %s', $caught->getMessage());
+            throw new RuntimeException($msg, $caught->getCode(), $caught);
+        }
+        return $return;
     }
 }

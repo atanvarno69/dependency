@@ -22,7 +22,7 @@ use PHPUnit\Framework\TestCase;
 
 /** Package use block. */
 use Atanvarno\Dependency\{Container, Definition};
-use Atanvarno\Dependency\Exception\{ConfigurationException, ContainerException};
+use Atanvarno\Dependency\Exception\{ConfigurationException, RuntimeException};
 
 class ContainerTest extends TestCase
 {
@@ -99,19 +99,19 @@ class ContainerTest extends TestCase
 
     public function testConstructorRejectsInvalidCacheIdentifierType()
     {
-        $this->expectException(ContainerException::class);
+        $this->expectException(RuntimeException::class);
         new Container([], 1);
     }
 
     public function testConstructorRejectsInvalidCacheStringEntryIdentifier()
     {
-        $this->expectException(ContainerException::class);
+        $this->expectException(RuntimeException::class);
         new Container([], 'invalid');
     }
 
     public function testConstructorRejectsInvalidCacheResolutionFromDefinition()
     {
-        $this->expectException(ContainerException::class);
+        $this->expectException(RuntimeException::class);
         new Container(
             [
                 'invalid' => new Definition\ObjectDefinition(
@@ -174,7 +174,7 @@ class ContainerTest extends TestCase
 
     public function testConstructorRejectsInvalidCacheKey()
     {
-        $this->expectException(ContainerException::class);
+        $this->expectException(RuntimeException::class);
         new Container([], null, '');
     }
 
@@ -213,7 +213,7 @@ class ContainerTest extends TestCase
             ->with('container')
             ->willReturn(false);
         $container = new Container([], $cache);
-        $this->expectException(ContainerException::class);
+        $this->expectException(RuntimeException::class);
         $container->clearCache();
     }
 

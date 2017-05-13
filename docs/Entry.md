@@ -1,6 +1,6 @@
 # Atanvarno\Dependency\Definition\Entry
-For use as a proxy parameter for a container entry.
-
+Represents a container entry in definitions. Returned by the helper function 
+[`entry()`](Functions.md#entry).
 ```php
 class Entry {}
 ```

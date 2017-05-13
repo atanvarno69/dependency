@@ -8,11 +8,18 @@
 
 namespace Atanvarno\Dependency\Exception;
 
+/** SPL use block. */
+use Exception;
+
+/** PSR-11 use block. */
+use Psr\Container\ContainerExceptionInterface;
+
 /**
  * Atanvarno\Dependency\Exception\ConfigurationException
  *
- * Exception thrown when an invalid user configuration is encountered.
+ * Exception thrown when the container configuration is invalid.
  */
-class ConfigurationException extends ContainerException
+class ConfigurationException extends Exception implements
+    ContainerExceptionInterface
 {
 }

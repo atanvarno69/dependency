@@ -18,9 +18,13 @@ use Psr\Container\{ContainerInterface, ContainerExceptionInterface};
 use Psr\SimpleCache\{CacheInterface, CacheException};
 
 /** Package use block. */
-use Atanvarno\Dependency\Definition\Entry;
+use Atanvarno\Dependency\Definition\{Entry, ValueDefinition};
 use Atanvarno\Dependency\Exception\{
-    ConfigurationException, ContainerException, NotFoundException
+    ConfigurationException,
+    InvalidArgumentException,
+    NotFoundException,
+    RuntimeException,
+    UnexpectedValueException
 };
 
 /**
@@ -28,7 +32,46 @@ use Atanvarno\Dependency\Exception\{
  *
  * A basic container implementing PSR-11 `ContainerInterface`.
  *
- * The container may contain and return any PHP type.
+ * The container may contain and return any PHP type. These container entries
+ * are associated with a unique user-defined `string` identifier.
+ *
+ * By default, a `Container` instance will associate itself with the identifier
+ * `container`. Use the method `setSelfId()` to change this value.
+ *
+ * `Container` implements PSR-11 `ContainerInterface` and thus uses the method
+ * `get()` is used to retrieve an entry and the method `has()` is used to check
+ * if an entry exists.
+ *
+ * Entries are added using the `set()` method. This accepts any value. To
+ * define an entry that will be lazy loaded (only instantiated when `get()` is
+ * first called), pass `set()` a `Definition` instance. The helper functions
+ * `factory()`, `object()` and `value()` can be used to provide a `Definition`
+ * instance for `set()`.
+ *
+ * Entries are removed using the `delete()` method.
+ *
+ * `Container` implements the Delegate Lookup Feature. To use a `Container`
+ * instance as a composite container, use the `addChild()` method. To use a
+ * `Container` instance as a child container, add it to the composite container
+ * and use the `setDelegate()` method to register the composite container for
+ * dependency resolution.
+ *
+ * As `Container` implements `ArrayAccess`, it can be used with array syntax:
+ * ```php
+ * # Array syntax              # Alias of
+ * $container['ID'] = $value;  $container->add('ID', $value);
+ * $item = $container['ID'];   $item = $container->get('ID');
+ * isset($container['ID']);    $container->has('ID');
+ * unset($container['ID']);    $container->delete('ID');
+ * ```
+ *
+ * Unlike a normal array, non-`string` offsets will be accepted by the array
+ * syntax. However, as PSR-11 only permits `string` identifiers, `int` (or
+ * other) offset types used with array syntax will be silently cast to `string`.
+ *
+ * `Container` can cache its contained entries. To use caching, provide a
+ * PSR-16 `CacheInterface` instance to the constructor, optionally with a key
+ * to use for its cache entry.
  *
  * @api
  */
@@ -43,41 +86,60 @@ class Container implements ArrayAccess, ContainerInterface
      * @var Definition[]            $definitions Definitions array.
      * @var ContainerInterface|null $delegate    Delegate container.
      * @var mixed[]                 $registry    Registered values.
+     * @var string                  $selfId      Self identifier.
      */
-    private $cache, $cacheKey, $children, $definitions, $delegate, $registry;
+    private
+        $cache,
+        $cacheKey,
+        $children,
+        $definitions,
+        $delegate,
+        $registry,
+        $selfId;
     
     /**
      * Builds a `Container` instance.
      *
-     * @param Definition[]              $definitions Entry definitions.
+     * Optionally accepts an array of `Definition` instances indexed by entry
+     * identifiers. These will be added to the container. This array can be
+     * returned from a configuration file.
+     *
+     * Optionally accepts a PSR-16 `CacheInterface` instance; or an `Entry`
+     * instance that refers to a PSR-16 cache instance. Thus, a cache can be
+     * gotten from the provided definitions array. If this is the case, the
+     * container will be updated with the values from the cache.
+     *
+     * Optionally accepts a cache key to store the container's data.
+     *
+     * @param Definition[]              $definitions Entry definitions indexed
+     *      by identifiers.
      * @param CacheInterface|Entry|null $cache       PSR-16 cache.
      * @param string                    $cacheKey    Cache key for cached data.
      *
-     * @throws ConfigurationException Invalid definitions array.
-     * @throws ConfigurationException Invalid cache key.
+     * @throws ConfigurationException   Definitions array does not contain only
+     *      `Definition` instances.
+     * @throws InvalidArgumentException Given cache is not a valid type.
+     * @throws InvalidArgumentException Given cache key is an empty string.
+     * @throws RuntimeException         Error building cache instance.
+     * @throws RuntimeException         Error getting data from cache.
+     * @throws UnexpectedValueException Built cache instance is not a PSR-16
+     *      cache.
+     * @throws UnexpectedValueException Invalid data returned from cache.
+     *
      */
     public function __construct(
         array $definitions = [],
         $cache = null,
         string $cacheKey = 'container'
     ) {
-        foreach ($definitions as $definition) {
-            if (!$definition instanceof Definition) {
-                $msg = 'Definitions array must contain only Definition objects';
-                throw new ConfigurationException($msg);
-            }
-        }
-        if (strlen($cacheKey) < 1) {
-            $msg = 'Cache key must be a non-zero length string';
-            throw new ConfigurationException($msg);
-        }
-        $this->definitions = $definitions;
+        $this->zeroLengthStringCheck($cacheKey, 'cache key');
+        $this->processDefinitions($definitions);
         $this->cache = $this->resolveCache($cache);
         $this->cacheKey = $cacheKey;
-        $this->registry = $this->resolveRegistry();
+        $this->processRegistry();
         $this->children = [];
         $this->delegate = null;
-        $this->set('container', $this);
+        $this->setSelfId('container');
     }
 
     /**
@@ -100,7 +162,7 @@ class Container implements ArrayAccess, ContainerInterface
      *
      * If no cache has been set, this method will do nothing.
      *
-     * @throws ContainerException Unable to clear cache.
+     * @throws RuntimeException Unable to clear cache.
      *
      * @return $this Fluent interface, allowing multiple calls to be chained.
      */
@@ -109,7 +171,7 @@ class Container implements ArrayAccess, ContainerInterface
         if (isset($this->cache)) {
             $value = $this->cache->delete($this->cacheKey);
             if ($value === false) {
-                throw new ContainerException('Unable to clear cache');
+                throw new RuntimeException('Unable to clear cache');
             }
         }
         return $this;
@@ -120,10 +182,13 @@ class Container implements ArrayAccess, ContainerInterface
      *
      * @param string $id Entry to delete.
      *
+     * @throws InvalidArgumentException Given identifier is an empty string.
+     *
      * @return $this Fluent interface, allowing multiple calls to be chained.
      */
     public function delete(string $id): Container
     {
+        $this->zeroLengthStringCheck($id, 'identifier');
         if (isset($this->registry[$id])) {
             unset($this->registry[$id]);
             $this->updateCache();
@@ -139,9 +204,10 @@ class Container implements ArrayAccess, ContainerInterface
      *
      * @param string $id Entry to retrieve.
      *
-     * @throws TypeError          Given $id is not a string.
-     * @throws NotFoundException  No entry was found for this identifier.
-     * @throws ContainerException Error while retrieving the entry.
+     * @throws TypeError                Given $id is not a string.
+     * @throws InvalidArgumentException Given identifier is an empty string.
+     * @throws NotFoundException        No entry was found for this identifier.
+     * @throws RuntimeException         Error while retrieving the entry.
      *
      * @return mixed The entry.
      */
@@ -152,6 +218,7 @@ class Container implements ArrayAccess, ContainerInterface
                 $this->getBcTypeErrorMessage(1, __METHOD__, 'string', $id)
             );
         }
+        $this->zeroLengthStringCheck($id, 'identifier');
         return (!empty($this->children))
             ? $this->compositeGet($id)
             : $this->selfGet($id);
@@ -166,7 +233,8 @@ class Container implements ArrayAccess, ContainerInterface
      *
      * @param string $id Entry to check for.
      *
-     * @throws TypeError Given $id is not a string.
+     * @throws TypeError                Given identifier is not a string.
+     * @throws InvalidArgumentException Given identifier is an empty string.
      *
      * @return bool `true` if the entry exists, `false` otherwise.
      */
@@ -177,6 +245,7 @@ class Container implements ArrayAccess, ContainerInterface
                 $this->getBcTypeErrorMessage(1, __METHOD__, 'string', $id)
             );
         }
+        $this->zeroLengthStringCheck($id, 'identifier');
         return (!empty($this->children))
             ? $this->compositeHas($id)
             : $this->selfHas($id);
@@ -192,6 +261,9 @@ class Container implements ArrayAccess, ContainerInterface
      *
      * @param mixed $offset Offset (entry) to check for. The value will be
      *      cast to `string`.
+     *
+     * @throws InvalidArgumentException Given offset resolves to an empty
+     *      string.
      *
      * @return bool `true` if the offset (entry) exists, `false` otherwise.
      */
@@ -211,8 +283,10 @@ class Container implements ArrayAccess, ContainerInterface
      * @param mixed $offset Offset (entry) to retrieve. The value will be cast
      *      to `string`.
      *
-     * @throws NotFoundException  No entry was found for this offset.
-     * @throws ContainerException Error while retrieving the offset.
+     * @throws InvalidArgumentException Given offset resolves to an empty
+     *      string.
+     * @throws NotFoundException        No entry was found for this offset.
+     * @throws RuntimeException         Error while retrieving the offset.
      *
      * @return mixed The entry.
      */
@@ -233,6 +307,9 @@ class Container implements ArrayAccess, ContainerInterface
      *      to `string`.
      * @param mixed  $value  Entry value.
      *
+     * @throws InvalidArgumentException Given offset resolves to an empty
+     *      string.
+     *
      * @return void
      */
     public function offsetSet($offset, $value)
@@ -251,6 +328,9 @@ class Container implements ArrayAccess, ContainerInterface
      * @param mixed $offset Offset (entry) to unset (delete). The value will be
      *      cast to `string`.
      *
+     * @throws InvalidArgumentException Given offset resolves to an empty
+     *      string.
+     *
      * @return void
      */
     public function offsetUnset($offset)
@@ -264,10 +344,13 @@ class Container implements ArrayAccess, ContainerInterface
      * @param string $id    Identifier to assign.
      * @param mixed  $value Entry value.
      *
+     * @throws InvalidArgumentException Given identifier is an empty string.
+     *
      * @return $this Fluent interface, allowing multiple calls to be chained.
      */
     public function set(string $id, $value): Container
     {
+        $this->zeroLengthStringCheck($id, 'identifier');
         $this->delete($id);
         if ($value instanceof Definition) {
             $this->definitions[$id] = $value;
@@ -297,21 +380,20 @@ class Container implements ArrayAccess, ContainerInterface
      * When instantiated, the container self identifier will be 'container'.
      * Use this method when a different identifier is required.
      *
-     * @param string $id Identifier to assign to the container.
+     * @param string $id Identifier to assign to the container itself.
      *
-     * @throws ConfigurationException Given identifier is an empty string.
+     * @throws InvalidArgumentException Given identifier is an empty string.
      *
      * @return $this Fluent interface, allowing multiple calls to be chained.
      */
     public function setSelfId(string $id): Container
     {
-        if (strlen($id) < 1) {
-            $msg = 'Self ID must be a non-zero length string';
-            throw new ConfigurationException($msg);
+        $this->zeroLengthStringCheck($id, 'identifier');
+        if (isset($this->selfId)) {
+            $this->delete($this->selfId);
         }
-        $currentKey = array_search($this, $this->registry);
-        $this->delete($currentKey);
-        $this->set($id, $this);
+        $this->selfId = $id;
+        $this->registry[$this->selfId] = $this;
         return $this;
     }
 
@@ -363,6 +445,57 @@ class Container implements ArrayAccess, ContainerInterface
             gettype($actual)
         );
     }
+
+    private function processDefinitions(array $definitions)
+    {
+        foreach ($definitions as $id => $definition) {
+            if (!$definition instanceof Definition) {
+                $msg = 'Definitions array must contain only Definition objects';
+                throw new ConfigurationException($msg);
+            }
+            if ($definition instanceof ValueDefinition) {
+                $this->registry[$id] = $definition->build($this);
+            } else {
+                $this->definitions[$id] = $definition;
+            }
+        }
+    }
+
+    private function processRegistry()
+    {
+        if (!isset($this->cache)) {
+            return;
+        }
+        try {
+            $cachedRegistry = $this->cache->get($this->cacheKey, []);
+        } catch (CacheException $caught) {
+            $msg = sprintf(
+                'Error resolving given cache key "%s": %s',
+                $this->cacheKey,
+                $caught->getMessage()
+            );
+            throw new RuntimeException(
+                $msg, $caught->getCode(), $caught
+            );
+        }
+        if (!is_array($cachedRegistry)) {
+            $type = (is_object($cachedRegistry))
+                ? get_class($cachedRegistry)
+                : gettype($cachedRegistry);
+            $msg = sprintf(
+                'Cache entry "%s" resolves to a %s, array expected',
+                $this->cacheKey,
+                $type
+            );
+            throw new UnexpectedValueException($msg);
+        }
+        foreach ($cachedRegistry as $id => $value) {
+            $this->registry[$id] = $value;
+        }
+        if ($this->registry != $cachedRegistry) {
+            $this->updateCache();
+        }
+    }
     
     private function selfGet(string $id)
     {
@@ -399,9 +532,9 @@ class Container implements ArrayAccess, ContainerInterface
         if ($cache instanceof CacheInterface || is_null($cache)) {
             return $cache;
         }
-        if (!$cache instanceof Entry && !is_string($cache)) {
-            $msg = 'Cache must be a PSR-16 cache, a container key or null';
-            throw new ConfigurationException($msg);
+        if (!$cache instanceof Entry) {
+            $msg = 'Cache must be a PSR-16 cache, a container entry or null';
+            throw new InvalidArgumentException($msg);
         }
         try {
             $return = $this->get((string) $cache);
@@ -411,7 +544,7 @@ class Container implements ArrayAccess, ContainerInterface
                 (string) $cache,
                 $caught->getMessage()
             );
-            throw new ContainerException($msg, $caught->getCode(), $caught);
+            throw new RuntimeException($msg, $caught->getCode(), $caught);
         }
         if (!$return instanceof CacheInterface) {
             $type = (is_object($return))
@@ -422,38 +555,7 @@ class Container implements ArrayAccess, ContainerInterface
                 (string) $cache,
                 $type
             );
-            throw new ConfigurationException($msg);
-        }
-        return $return;
-    }
-    
-    private function resolveRegistry(): array
-    {
-        if (!isset($this->cache)) {
-            return [];
-        }
-        try {
-            $return = $this->cache->get($this->cacheKey, []);
-        } catch (CacheException $caught) {
-            $msg = sprintf(
-                'Error resolving given cache key "%s": %s',
-                $this->cacheKey,
-                $caught->getMessage()
-            );
-            throw new ConfigurationException(
-                $msg, $caught->getCode(), $caught
-            );
-        }
-        if (!is_array($return)) {
-            $type = (is_object($return))
-                ? get_class($return)
-                : gettype($return);
-            $msg = sprintf(
-                'Cache entry "%s" resolves to a %s, array expected',
-                $this->cacheKey,
-                $type
-            );
-            throw new ConfigurationException($msg);
+            throw new UnexpectedValueException($msg);
         }
         return $return;
     }
@@ -461,7 +563,19 @@ class Container implements ArrayAccess, ContainerInterface
     private function updateCache()
     {
         if (isset($this->cache)) {
-            $this->cache->set($this->cacheKey, $this->registry);
+            $registry = $this->registry;
+            if (isset($this->selfId)) {
+                unset($registry[$this->selfId]);
+            }
+            $this->cache->set($this->cacheKey, $registry);
+        }
+    }
+
+    private function zeroLengthStringCheck(string $string, string $name)
+    {
+        if (strlen($string) < 1) {
+            $msg = sprintf('Given %s is an empty string', $name);
+            throw new InvalidArgumentException($msg);
         }
     }
 }

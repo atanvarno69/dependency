@@ -1,9 +1,8 @@
 # Atanvarno\Dependency\Exception\ConfigurationException
-
-Exception thrown when an invalid user configuration is encountered.
-
+Exception thrown when the container configuration is invalid.
 ```php
-class ConfigurationException extends ContainerException {}
+class ConfigurationException extends Exception implements ContainerExceptionInterface {}
 ```
+Extends [`Exception`](http://php.net/manual/en/class.exception.php).
 
-Extends [`ContainerException`](ContainerException.md).
+Implements [PSR-11 `ContainerExceptionInterface`](http://www.php-fig.org/psr/psr-11/#22-psrcontainercontainerexceptioninterface).

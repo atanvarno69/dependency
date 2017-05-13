@@ -9,6 +9,7 @@
 namespace Atanvarno\Dependency;
 
 /** PSR-11 use block. */
+use Atanvarno\Dependency\Exception\RuntimeException;
 use Psr\Container\ContainerInterface;
 
 /**
@@ -28,6 +29,8 @@ interface Definition
      * @internal For use by `Container`.
      *
      * @param ContainerInterface $container Container to resolve dependencies.
+     *
+     * @throws RuntimeException Unable to build.
      *
      * @return mixed The entry.
      */

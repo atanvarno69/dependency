@@ -3,8 +3,8 @@ A definition for a lazy loaded [`Container`](Container.md) entry.
 ```php
 interface Definition
 {
-    // Methods
     public function method(string $name, array $parameters = []): Definition
+    public function property(string $name, $value = null): Definition
 }
 ```
 Provides a [fluent interface](https://en.wikipedia.org/wiki/Fluent_interface) 
@@ -37,7 +37,8 @@ Nothing is thrown.
 ### Returns
 * `Definition` **$this**
 
-  Fluent interface, allowing multiple calls to be chained.
+  [fluent interface](https://en.wikipedia.org/wiki/Fluent_interface), allowing 
+  multiple calls to be chained.
 
 ## property
 Sets a public property after object instantiation.
@@ -62,4 +63,5 @@ Nothing is thrown.
 ### Returns
 * `Definition` **$this**
 
-  Fluent interface, allowing multiple calls to be chained.
+  [fluent interface](https://en.wikipedia.org/wiki/Fluent_interface), allowing 
+  multiple calls to be chained.

@@ -15,7 +15,7 @@ use Psr\Container\ContainerExceptionInterface;
 use PHPUnit\Framework\TestCase;
 
 /** Package use block. */
-use Atanvarno\Dependency\Exception\ContainerException;
+use Atanvarno\Dependency\Exception\RuntimeException;
 
 class ContainerExceptionTest extends TestCase
 {
@@ -23,7 +23,7 @@ class ContainerExceptionTest extends TestCase
 
     public function setUp()
     {
-        $this->exception = new ContainerException();
+        $this->exception = new RuntimeException();
     }
 
     public function testIsThrowable()

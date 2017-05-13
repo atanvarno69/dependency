@@ -7,8 +7,10 @@ container, implementing `ContainerInterface` and [`ArrayAccess`](http://php.net/
 * [Atanvarno\Dependency\Definition](Definition.md)
 * [Atanvarno\Dependency\Definition\Entry](Entry.md)
 * [Atanvarno\Dependency\Exception\ConfigurationException](ConfigurationException.md)
-* [Atanvarno\Dependency\Exception\ContainerException](ContainerException.md)
+* [Atanvarno\Dependency\Exception\InvalidArgumentException](InvalidArgumentException.md)
 * [Atanvarno\Dependency\Exception\NotFoundException](NotFoundException.md)
+* [Atanvarno\Dependency\Exception\RuntimeException](RuntimeException.md)
+* [Atanvarno\Dependency\Exception\UnexpectedValueException](UnexpectedValueException.md)
 
 ## Functions
 * [Atanvarno\Dependency\entry()](Functions.md#entry)
