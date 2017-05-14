@@ -22,7 +22,13 @@ use PHPUnit\Framework\TestCase;
 
 /** Package use block. */
 use Atanvarno\Dependency\{Container, Definition};
-use Atanvarno\Dependency\Exception\{ConfigurationException, RuntimeException};
+use Atanvarno\Dependency\Definition\Entry;
+use Atanvarno\Dependency\Exception\{
+    ConfigurationException,
+    InvalidArgumentException,
+    RuntimeException,
+    UnexpectedValueException
+};
 
 class ContainerTest extends TestCase
 {
@@ -80,7 +86,7 @@ class ContainerTest extends TestCase
                     $callable, [$cache], true
                 ),
             ],
-            'cache'
+            new Entry('cache')
         );
         $this->assertAttributeEquals($cache, 'cache', $container);
     }
@@ -99,26 +105,26 @@ class ContainerTest extends TestCase
 
     public function testConstructorRejectsInvalidCacheIdentifierType()
     {
-        $this->expectException(RuntimeException::class);
+        $this->expectException(InvalidArgumentException::class);
         new Container([], 1);
     }
 
     public function testConstructorRejectsInvalidCacheStringEntryIdentifier()
     {
         $this->expectException(RuntimeException::class);
-        new Container([], 'invalid');
+        new Container([], new Entry('invalid'));
     }
 
     public function testConstructorRejectsInvalidCacheResolutionFromDefinition()
     {
-        $this->expectException(RuntimeException::class);
+        $this->expectException(UnexpectedValueException::class);
         new Container(
             [
                 'invalid' => new Definition\ObjectDefinition(
                     Container::class, [], true
                 ),
             ],
-            'invalid'
+            new Entry('invalid')
         );
     }
 
@@ -129,14 +135,14 @@ class ContainerTest extends TestCase
             new class() extends Exception implements CacheException {}
         );
         $callable = function($cache) {return $cache;};
-        $this->expectException(ConfigurationException::class);
+        $this->expectException(RuntimeException::class);
         new Container(
             [
                 'cache' => new Definition\FactoryDefinition(
                     $callable, [$cache], true
                 ),
             ],
-            'cache'
+            new Entry('cache')
         );
     }
 
@@ -145,14 +151,14 @@ class ContainerTest extends TestCase
         $cache = $this->createMock(CacheInterface::class);
         $cache->method('get')->willReturn('invalid');
         $callable = function($cache) {return $cache;};
-        $this->expectException(ConfigurationException::class);
+        $this->expectException(UnexpectedValueException::class);
         new Container(
             [
                 'cache' => new Definition\FactoryDefinition(
                     $callable, [$cache], true
                 ),
             ],
-            'cache'
+            new Entry('cache')
         );
     }
 
@@ -161,20 +167,20 @@ class ContainerTest extends TestCase
         $cache = $this->createMock(CacheInterface::class);
         $cache->method('get')->willReturn($this->container);
         $callable = function($cache) {return $cache;};
-        $this->expectException(ConfigurationException::class);
+        $this->expectException(UnexpectedValueException::class);
         new Container(
             [
                 'cache' => new Definition\FactoryDefinition(
                     $callable, [$cache], true
                 ),
             ],
-            'cache'
+            new Entry('cache')
         );
     }
 
     public function testConstructorRejectsInvalidCacheKey()
     {
-        $this->expectException(RuntimeException::class);
+        $this->expectException(InvalidArgumentException::class);
         new Container([], null, '');
     }
 
@@ -489,7 +495,7 @@ class ContainerTest extends TestCase
 
     public function testSetSelfIdRejectsInvalidId()
     {
-        $this->expectException(ConfigurationException::class);
+        $this->expectException(InvalidArgumentException::class);
         $this->container->setSelfId('');
     }
 }
