@@ -163,7 +163,7 @@ Nothing is thrown.
 ### Returns
 * `Container` **$this**
 
-  [fluent interface](https://en.wikipedia.org/wiki/Fluent_interface), allowing 
+  [Fluent interface](https://en.wikipedia.org/wiki/Fluent_interface), allowing 
   multiple calls to be chained.
 
 ## clearCache
@@ -184,7 +184,7 @@ If no cache has been set, this method will do nothing.
 ### Returns
 * `Container` **$this**
 
-  [fluent interface](https://en.wikipedia.org/wiki/Fluent_interface), allowing 
+  [Fluent interface](https://en.wikipedia.org/wiki/Fluent_interface), allowing 
   multiple calls to be chained.
 
 ## delete
@@ -205,7 +205,7 @@ public function delete(string $id): Container
 ### Returns
 * `Container` **$this**
 
-  [fluent interface](https://en.wikipedia.org/wiki/Fluent_interface), allowing 
+  [Fluent interface](https://en.wikipedia.org/wiki/Fluent_interface), allowing 
   multiple calls to be chained.
 
 ## get
@@ -396,7 +396,7 @@ public function set(string $id, $value): Container
 ### Returns
 * `Container` **$this**
 
-  [fluent interface](https://en.wikipedia.org/wiki/Fluent_interface), allowing 
+  [Fluent interface](https://en.wikipedia.org/wiki/Fluent_interface), allowing 
   multiple calls to be chained.
 
 ## setDelegate
@@ -416,7 +416,7 @@ Nothing is thrown.
 ### Returns
 * `Container` **$this**
 
-  [fluent interface](https://en.wikipedia.org/wiki/Fluent_interface), allowing 
+  [Fluent interface](https://en.wikipedia.org/wiki/Fluent_interface), allowing 
   multiple calls to be chained.
 
 ## setSelfId
@@ -440,5 +440,5 @@ method when a different identifier is required.
 ### Returns
 * `Container` **$this**
 
-  [fluent interface](https://en.wikipedia.org/wiki/Fluent_interface), allowing 
+  [Fluent interface](https://en.wikipedia.org/wiki/Fluent_interface), allowing 
   multiple calls to be chained.

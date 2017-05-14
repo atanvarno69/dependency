@@ -7,7 +7,7 @@ interface Definition
     public function property(string $name, $value = null): Definition
 }
 ```
-Provides a [fluent interface](https://en.wikipedia.org/wiki/Fluent_interface) 
+Provides a [Fluent interface](https://en.wikipedia.org/wiki/Fluent_interface) 
 to define multiple post-instantiation actions.
 
 * [method](#method)
@@ -37,7 +37,7 @@ Nothing is thrown.
 ### Returns
 * `Definition` **$this**
 
-  [fluent interface](https://en.wikipedia.org/wiki/Fluent_interface), allowing 
+  [Fluent interface](https://en.wikipedia.org/wiki/Fluent_interface), allowing 
   multiple calls to be chained.
 
 ## property
@@ -63,5 +63,5 @@ Nothing is thrown.
 ### Returns
 * `Definition` **$this**
 
-  [fluent interface](https://en.wikipedia.org/wiki/Fluent_interface), allowing 
+  [Fluent interface](https://en.wikipedia.org/wiki/Fluent_interface), allowing 
   multiple calls to be chained.

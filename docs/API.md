@@ -1,6 +1,7 @@
 # Atanvarno\Dependency API
 A bare bones [PSR-11](http://www.php-fig.org/psr/psr-11/) dependency injection 
-container, implementing `ContainerInterface` and [`ArrayAccess`](http://php.net/manual/en/class.arrayaccess.php).
+container, implementing `ContainerInterface` and 
+[`ArrayAccess`](http://php.net/manual/en/class.arrayaccess.php).
 
 ## Classes & Interfaces
 * [Atanvarno\Dependency\Container](Container.md)
