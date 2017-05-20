@@ -6,20 +6,21 @@
  * @license   https://opensource.org/licenses/MIT The MIT License
  */
 
-namespace Atanvarno\Dependency;
+namespace Atanvarno\Dependency\Definition;
 
 /**
- * Atanvarno\Dependency\EntryProxy
+ * Atanvarno\Dependency\Definition\Entry
  *
- * @internal For use as a proxy parameter for a container entry.
+ * @internal Represents a container entry in definitions. Returned by the
+ * helper function `entry()`.
  */
-class EntryProxy
+class Entry
 {
     /** @var string $id Identifier of the proxy entry. */
     private $id;
-
+    
     /**
-     * EntryProxy constructor.
+     * Builds an `Entry` instance.
      *
      * @param string $id Identifier of the proxy entry.
      */
@@ -27,7 +28,7 @@ class EntryProxy
     {
         $this->id = $id;
     }
-
+    
     /**
      * @return string Identifier of the proxy entry.
      */

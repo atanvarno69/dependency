@@ -8,42 +8,33 @@
 
 namespace Atanvarno\Dependency;
 
+/** PSR-11 use block. */
+use Atanvarno\Dependency\Exception\RuntimeException;
+use Psr\Container\ContainerInterface;
+
 /**
  * Atanvarno\Dependency\Definition
  *
  * A definition for a lazy loaded `Container` entry.
  *
- * Provides a fluent interface to define multiple post-instantiation method
- * calls.
+ * Provides a fluent interface to define multiple post-instantiation actions.
+ *
+ * @api
  */
 interface Definition
 {
     /**
-     * Get the definition cargo.
+     * Builds the entry
      *
      * @internal For use by `Container`.
      *
-     * @return callable|string Definition callable or class name.
+     * @param ContainerInterface $container Container to resolve dependencies.
+     *
+     * @throws RuntimeException Unable to build.
+     *
+     * @return mixed The entry.
      */
-    public function getCargo();
-
-    /**
-     * Get the methods to call on the object after instantiation.
-     *
-     * @internal For use by `Container`.
-     *
-     * @return array Parameters.
-     */
-    public function getMethods(): array;
-
-    /**
-     * Get the parameters to pass.
-     *
-     * @internal For use by `Container`.
-     *
-     * @return array Constructor parameters.
-     */
-    public function getParameters(): array;
+    public function build(ContainerInterface $container);
 
     /**
      * Get the registration flag.
@@ -52,18 +43,31 @@ interface Definition
      *
      * @return bool Registration flag.
      */
-    public function getRegister(): bool;
+    public function isRegistered(): bool;
 
     /**
      * Adds a method to call after object instantiation.
      *
-     * @api
+     * Note if the definition does not define an object, adding a method to
+     * call will do nothing.
      *
      * @param string $name       Method name to call.
-     * @param array  $parameters Parameters to pass to the method. To use an
-     *      entry defined in the container, use `Container::entry()`.
+     * @param array  $parameters A list of parameters to pass to the method.
      *
      * @return $this Fluent interface, allowing multiple calls to be chained.
      */
-    public function method(string $name, ...$parameters): Definition;
+    public function method(string $name, array $parameters = []): Definition;
+    
+    /**
+     * Sets a public property after object instantiation.
+     *
+     * Note if the definition does not define an object, setting a property
+     * will do nothing.
+     *
+     * @param string $name  Property name to set.
+     * @param mixed  $value Value to set.
+     *
+     * @return $this Fluent interface, allowing multiple calls to be chained.
+     */
+    public function property(string $name, $value = null): Definition;
 }

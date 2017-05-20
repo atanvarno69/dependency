@@ -5,22 +5,21 @@
  * @copyright 2017 atanvarno.com
  * @license   https://opensource.org/licenses/MIT The MIT License
  */
- 
+
 namespace Atanvarno\Dependency\Exception;
 
 /** SPL use block. */
 use Exception;
 
 /** PSR-11 use block. */
-use Psr\Container\NotFoundExceptionInterface;
+use Psr\Container\ContainerExceptionInterface;
 
-/** 
- * Atanvarno\Dependency\Exception\NotFoundException
+/**
+ * Atanvarno\Dependency\Exception\ConfigurationException
  *
- * Exception thrown when resolving a non-existent entry.
- *
- * Implements `Psr\Container\NotFoundExceptionInterface`.
+ * Exception thrown when the container configuration is invalid.
  */
-class NotFoundException extends Exception implements NotFoundExceptionInterface
+class ConfigurationException extends Exception implements
+    ContainerExceptionInterface
 {
 }

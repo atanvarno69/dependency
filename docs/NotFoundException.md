@@ -1,7 +1,8 @@
-# Atanvarno\Dependency\Exception\ContainerException
-Exception implementing [PSR-11 `NotFoundExceptionInterface`](http://www.php-fig.org/psr/psr-11/#23-psrcontainernotfoundexceptioninterface).
-
+# Atanvarno\Dependency\Exception\NotFoundException
+Exception thrown when resolving a non-existent entry.
 ```php
-class NotFoundException extends ContainerException implements NotFoundExceptionInterface {}
+class NotFoundException extends Exception implements NotFoundExceptionInterface {}
 ```
-Extends [ContainerException](ContainerException.md).
+Extends [`Exception`](http://php.net/manual/en/class.exception.php).
+
+Implements [PSR-11 `NotFoundExceptionInterface`](http://www.php-fig.org/psr/psr-11/#23-psrcontainernotfoundexceptioninterface).

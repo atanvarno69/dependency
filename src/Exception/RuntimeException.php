@@ -15,12 +15,11 @@ use Exception;
 use Psr\Container\ContainerExceptionInterface;
 
 /**
- * Atanvarno\Dependency\Exception\ContainerException
+ * Atanvarno\Dependency\Exception\RuntimeException
  *
- * @internal Exception implementing `ContainerExceptionInterface`.
+ * Exception thrown when the container encounters an issue at runtime.
  */
-class ContainerException extends Exception implements
+class RuntimeException extends Exception implements
     ContainerExceptionInterface
 {
-    
 }

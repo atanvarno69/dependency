@@ -9,447 +9,519 @@
 namespace Atanvarno\Dependency\Test;
 
 /** SPL use block. */
-use TypeError;
-
-/** PHPUnit use block */
-use PHPUnit\Framework\TestCase;
+use ArrayAccess, Exception, TypeError;
 
 /** PSR-11 use block. */
-use Psr\Container\{
-    ContainerInterface, ContainerExceptionInterface, NotFoundExceptionInterface
-};
+use Psr\Container\{ContainerInterface, NotFoundExceptionInterface};
+
+/** PSR-16 use block. */
+use Psr\SimpleCache\{CacheException, CacheInterface};
+
+/** PHPUnit use block. */
+use PHPUnit\Framework\TestCase;
 
 /** Package use block. */
-use Atanvarno\Dependency\{
-    Container, ClassDefinition, EntryProxy, FactoryDefinition
+use Atanvarno\Dependency\{Container, Definition};
+use Atanvarno\Dependency\Definition\{Entry, ValueDefinition};
+use Atanvarno\Dependency\Exception\{
+    ConfigurationException,
+    InvalidArgumentException,
+    RuntimeException,
+    UnexpectedValueException
 };
 
 class ContainerTest extends TestCase
 {
-    /** @var callable $callable */
-    private $callable;
-
     /** @var Container $container */
     private $container;
-
-    public function setUp()
+    
+    public function setup()
     {
-        $this->callable = function (...$params) {
-            return new Container(...$params);
-        };
         $this->container = new Container();
     }
-
+    
+    public function testImplementsInterfaces()
+    {
+        $this->assertInstanceOf(ArrayAccess::class, $this->container);
+        $this->assertInstanceOf(ContainerInterface::class, $this->container);
+    }
+    
     public function testConstructorDefaults()
     {
-        $expected = ['container' => $this->container];
-        $this->assertInstanceOf(ContainerInterface::class, $this->container);
-        $this->assertAttributeEquals($expected, 'registry', $this->container);
+        $this->assertAttributeEquals(null, 'cache', $this->container);
+        $this->assertAttributeEquals('container', 'cacheKey', $this->container);
+        $this->assertAttributeEmpty('children', $this->container);
+        $this->assertAttributeEmpty('definitions', $this->container);
+        $this->assertAttributeEquals(null, 'delegate', $this->container);
+        $this->assertAttributeEquals(
+            ['container' => $this->container], 'registry', $this->container
+        );
     }
 
-    public function testConstructorWithContainerName()
+    public function testConstructorWithDefinition()
     {
-        $container = new Container('name');
-        $expected = ['name' => $container];
-        $this->assertAttributeEquals($expected, 'registry', $container);
+        $definition = $this->createMock(Definition::class);
+        $container = new Container([
+            'test-definition' => $definition,
+            'test-value' => new ValueDefinition('value', true)
+
+        ]);
+        $this->assertAttributeEquals(
+            ['test-definition' => $definition], 'definitions', $container
+        );
+        $this->assertAttributeEquals(
+            ['test-value' => 'value', 'container' => $container],
+            'registry',
+            $container
+        );
     }
 
-    public function testAdd()
+    public function testConstructorWithCache()
     {
-        $result = $this->container->add('one', 1)->add('two', 2);
-        $expected = ['container' => $this->container, 'one' => 1, 'two' => 2];
-        $this->assertAttributeEquals($expected, 'registry', $this->container);
+        $cache = $this->createMock(CacheInterface::class);
+        $cache->method('get')->willReturn([]);
+        $container = new Container([], $cache);
+        $this->assertAttributeEquals($cache, 'cache', $container);
+    }
+
+    public function testConstructorWithCacheFromDefinition()
+    {
+        $cache = $this->createMock(CacheInterface::class);
+        $cache->method('get')->willReturn([
+            'test-value' => 'value',
+        ]);
+        $callable = function($cache) {return $cache;};
+        $container = new Container(
+            [
+                'cache' => new Definition\FactoryDefinition(
+                    $callable, [$cache], true
+                ),
+            ],
+            new Entry('cache')
+        );
+        $this->assertAttributeEquals($cache, 'cache', $container);
+        $this->assertAttributeEquals(
+            [
+                'test-value' => 'value',
+                'container' => $container,
+                'cache' => $cache
+            ],
+            'registry',
+            $container
+        );
+    }
+
+    public function testConstructorWithCacheKey()
+    {
+        $container = new Container([], null, 'test key');
+        $this->assertAttributeEquals('test key', 'cacheKey', $container);
+    }
+
+    public function testConstructorRejectsNonDefinition()
+    {
+        $this->expectException(ConfigurationException::class);
+        new Container(['test' => 'value']);
+    }
+
+    public function testConstructorRejectsInvalidCacheIdentifierType()
+    {
+        $this->expectException(InvalidArgumentException::class);
+        new Container([], 1);
+    }
+
+    public function testConstructorRejectsInvalidCacheStringEntryIdentifier()
+    {
+        $this->expectException(RuntimeException::class);
+        new Container([], new Entry('invalid'));
+    }
+
+    public function testConstructorRejectsInvalidCacheResolutionFromDefinition()
+    {
+        $this->expectException(UnexpectedValueException::class);
+        new Container(
+            [
+                'invalid' => new Definition\ObjectDefinition(
+                    Container::class, [], true
+                ),
+            ],
+            new Entry('invalid')
+        );
+    }
+
+    public function testConstructorBubblesCacheGetError()
+    {
+        $cache = $this->createMock(CacheInterface::class);
+        $cache->method('get')->willThrowException(
+            new class() extends Exception implements CacheException {}
+        );
+        $callable = function($cache) {return $cache;};
+        $this->expectException(RuntimeException::class);
+        new Container(
+            [
+                'cache' => new Definition\FactoryDefinition(
+                    $callable, [$cache], true
+                ),
+            ],
+            new Entry('cache')
+        );
+    }
+
+    public function testConstructorRejectsInvalidPrimitiveReturnFromCache()
+    {
+        $cache = $this->createMock(CacheInterface::class);
+        $cache->method('get')->willReturn('invalid');
+        $callable = function($cache) {return $cache;};
+        $this->expectException(UnexpectedValueException::class);
+        new Container(
+            [
+                'cache' => new Definition\FactoryDefinition(
+                    $callable, [$cache], true
+                ),
+            ],
+            new Entry('cache')
+        );
+    }
+
+    public function testConstructorRejectsInvalidObjectReturnFromCache()
+    {
+        $cache = $this->createMock(CacheInterface::class);
+        $cache->method('get')->willReturn($this->container);
+        $callable = function($cache) {return $cache;};
+        $this->expectException(UnexpectedValueException::class);
+        new Container(
+            [
+                'cache' => new Definition\FactoryDefinition(
+                    $callable, [$cache], true
+                ),
+            ],
+            new Entry('cache')
+        );
+    }
+
+    public function testConstructorRejectsInvalidCacheKey()
+    {
+        $this->expectException(InvalidArgumentException::class);
+        new Container([], null, '');
+    }
+
+    public function testAddChild()
+    {
+        $child = $this->createMock(ContainerInterface::class);
+        $result = $this->container->addChild($child);
+        $this->assertSame($this->container, $result);
+        $this->assertAttributeEquals([$child], 'children', $result);
+    }
+
+    public function testClearCache()
+    {
+        $cache = $this->createMock(CacheInterface::class);
+        $cache->method('get')->willReturn([]);
+        $cache->expects($this->once())
+            ->method('delete')
+            ->with('container')
+            ->willReturn(true);
+        $container = new Container([], $cache);
+        $container->clearCache();
+    }
+
+    public function testClearCacheDoesNothingWithoutACacheSet()
+    {
+        $result = $this->container->clearCache();
         $this->assertSame($this->container, $result);
     }
 
-    public function testDefineDefaults()
+    public function testClearCacheThrowsExceptionIfCacheCannotBeCleared()
     {
-        $result = $this->container->define(Container::class);
-        $this->assertInstanceOf(ClassDefinition::class, $result);
-        $this->assertSame(Container::class, $result->getCargo());
-        $this->assertSame([], $result->getMethods());
-        $this->assertSame([], $result->getParameters());
-        $this->assertTrue($result->getRegister());
+        $cache = $this->createMock(CacheInterface::class);
+        $cache->method('get')->willReturn([]);
+        $cache->expects($this->once())
+            ->method('delete')
+            ->with('container')
+            ->willReturn(false);
+        $container = new Container([], $cache);
+        $this->expectException(RuntimeException::class);
+        $container->clearCache();
     }
 
-    public function testDefineWithParameters()
+    public function testDeleteOnRegistryKey()
     {
-        $result = $this->container->define(Container::class, ['name']);
-        $this->assertSame(['name'], $result->getParameters());
+        $this->container->set('registry entry', 'test value');
+        $this->assertAttributeEquals(
+            [
+                'container' => $this->container,
+                'registry entry' => 'test value'
+            ],
+            'registry',
+            $this->container
+        );
+        $result = $this->container->delete('registry entry');
+        $this->assertSame($this->container, $result);
+        $this->assertAttributeEquals(
+            ['container' => $this->container], 'registry', $this->container
+        );
     }
 
-    public function testDefineWithFalseRegister()
+    public function testDeleteOnDefinitionKey()
     {
-        $result = $this->container->define(Container::class, [], false);
-        $this->assertFalse($result->getRegister());
+        $definition = $this->createMock(Definition::class);
+        $this->container->set('definition entry', $definition);
+        $this->assertAttributeEquals(
+            ['definition entry' => $definition], 'definitions', $this->container
+        );
+        $result = $this->container->delete('definition entry');
+        $this->assertSame($this->container, $result);
+        $this->assertAttributeEquals([], 'definitions', $this->container);
     }
 
-    public function testDelete()
+    public function testGetFromDefinition()
     {
-        $result = $this->container->add('one', 1)->add('two', 2)->delete('one');
-        $expected = [
-            'two' => 2,
-            'container' => $this->container
-        ];
-        $this->assertAttributeEquals($expected, 'registry', $this->container);
+        $container = new Container(
+            [
+                'test ID' => new Definition\ObjectDefinition(
+                    Container::class, [], true
+                ),
+            ]
+        );
+        $result = $container->get('test ID');
+        $this->assertInstanceOf(Container::class, $result);
+        $this->assertNotSame($container, $result);
+    }
+
+    public function testGetFromRegistry()
+    {
+        $result = $this->container->get('container');
         $this->assertSame($this->container, $result);
     }
 
-    public function testEntry()
+    public function testCompositeGetChecksSelfFirst()
     {
-        $result = $this->container->entry('container');
-        $this->assertInstanceOf(EntryProxy::class, $result);
-        $this->assertSame('container', (string) $result);
+        $child = $this->createMock(ContainerInterface::class);
+        $child->expects($this->never())->method('has');
+        $this->container->addChild($child);
+        $result = $this->container->get('container');
+        $this->assertSame($this->container, $result);
     }
 
-    public function testFactoryDefaults()
+    public function testCompositeGetGetsFromChildren()
     {
-        $result = $this->container->factory($this->callable);
-        $this->assertInstanceOf(FactoryDefinition::class, $result);
-        $this->assertSame($this->callable, $result->getCargo());
-        $this->assertSame([], $result->getMethods());
-        $this->assertSame([], $result->getParameters());
-        $this->assertTrue($result->getRegister());
+        $child = new Container();
+        $this->container->setSelfId('parent');
+        $this->container->addChild($child);
+        $result = $this->container->get('container');
+        $this->assertSame($child, $result);
     }
 
-    public function testFactoryWithParameters()
+    public function testGetRejectsUnknownId()
     {
-        $result = $this->container->factory($this->callable, ['name']);
-        $this->assertSame(['name'], $result->getParameters());
+        $this->expectException(NotFoundExceptionInterface::class);
+        $this->container->get('invalid');
     }
 
-    public function testFactoryWithFalseRegister()
+    public function testCompositeGetRejectsUnknownId()
     {
-        $result = $this->container->factory($this->callable, [], false);
-        $this->assertFalse($result->getRegister());
+        $child = new Container();
+        $this->container->addChild($child);
+        $this->expectException(NotFoundExceptionInterface::class);
+        $this->container->get('invalid');
     }
 
-    public function testGetWithValidEntry()
-    {
-        $this->container->add('ID', 'value');
-        $result = $this->container->get('ID');
-        $this->assertSame('value', $result);
-    }
-
-    public function testGetFromClassDefinition()
-    {
-        $this->container->add('ID', $this->container->define(Container::class));
-        $result = $this->container->get('ID');
-        $this->assertInstanceOf(Container::class, $result);
-    }
-
-    public function testGetFromFactoryDefinition()
-    {
-        $this->container->add('ID', $this->container->factory($this->callable));
-        $result = $this->container->get('ID');
-        $this->assertInstanceOf(Container::class, $result);
-    }
-
-    public function testGetFromClassDefinitionWithParameters()
-    {
-        $this->container->add('ID', $this->container->define(
-            Container::class,
-            ['name']
-        ));
-        $result = $this->container->get('ID');
-        $this->assertSame($result, $result->get('name'));
-    }
-
-    public function testGetFromFactoryDefinitionWithParameters()
-    {
-        $this->container->add('ID', $this->container->factory(
-            $this->callable,
-            ['name']
-        ));
-        $result = $this->container->get('ID');
-        $this->assertSame($result, $result->get('name'));
-    }
-
-    public function testGetFromClassDefinitionWithParametersFromContainer()
-    {
-        $this->container->add('name', 'testName');
-        $this->container->add('ID', $this->container->define(
-            Container::class,
-            [$this->container->entry('name')]
-        ));
-        $result = $this->container->get('ID');
-        $this->assertSame($result, $result->get('testName'));
-    }
-
-    public function testGetFromFactoryDefinitionWithParametersFromContainer()
-    {
-        $this->container->add('name', 'testName');
-        $this->container->add('ID', $this->container->factory(
-            $this->callable,
-            [$this->container->entry('name')]
-        ));
-        $result = $this->container->get('ID');
-        $this->assertSame($result, $result->get('testName'));
-    }
-
-    public function testGetFromClassDefinitionRecursivelyBuildsArrayParameters()
-    {
-        $this->container->add('name', 'testName');
-        $this->container->add('ID', $this->container->define(
-            Container::class,
-            [$this->container->entry('name')]
-        ));
-        $result = $this->container->get('ID');
-        $this->assertSame($result, $result->get('testName'));
-    }
-
-    public function testGetFromClassDefinitionWithMethods()
-    {
-        $this->container->add('name', 'testName');
-        $this->container->add(
-            'ID', $this->container->define(Container::class)
-                ->method('add', 'result', $this->container->entry('name'))
-        );
-        $result = $this->container->get('ID');
-        $this->assertSame('testName', $result->get('result'));
-    }
-
-    public function testGetFromFactoryDefinitionWithMethods()
-    {
-        $this->container->add('name', 'testName');
-        $this->container->add(
-            'ID', $this->container->factory($this->callable)
-            ->method('add', 'result', $this->container->entry('name'))
-        );
-        $result = $this->container->get('ID');
-        $this->assertSame('testName', $result->get('result'));
-    }
-
-    public function testGetFromClassDefinitionRecursivelyResolvesArrayParams()
-    {
-        $this->container->add('name', 'testName');
-        $this->container->add(
-            'ID',
-            $this->container->define(Container::class)
-                ->method(
-                    'add',
-                    'result',
-                    ['normalName', $this->container->entry('name')]
-                )
-        );
-        $result = $this->container->get('ID');
-        $this->assertSame(['normalName', 'testName'], $result->get('result'));
-    }
-
-    public function testGetFromFactoryDefinitionRecursivelyResolvesArrayParams()
-    {
-        $this->container->add('name', 'testName');
-        $this->container->add(
-            'ID',
-            $this->container->factory($this->callable)
-                ->method(
-                    'add',
-                    'result',
-                    ['normalName', $this->container->entry('name')]
-                )
-        );
-        $result = $this->container->get('ID');
-        $this->assertSame(['normalName', 'testName'], $result->get('result'));
-    }
-
-    public function getReturnsSameInstanceAsDefaultForClassDefinitionEntries()
-    {
-        $this->container->add('ID', $this->container->define(Container::class));
-        $result = $this->container->get('ID');
-        $result->add('test', 'value');
-        $final = $this->container->get('ID');
-        $this->assertSame($result->get('test'), $final->get('test'));
-    }
-
-    public function getReturnsSameInstanceAsDefaultForFactoryDefinitionEntries()
-    {
-        $this->container->add('ID', $this->container->factory($this->callable));
-        $result = $this->container->get('ID');
-        $result->add('test', 'value');
-        $final = $this->container->get('ID');
-        $this->assertSame($result->get('test'), $final->get('test'));
-    }
-
-    public function getReturnsSameInstanceForRegisteredClassDefinitionEntries()
-    {
-        $this->container->add(
-            'ID',
-            $this->container->define(Container::class, [], true)
-        );
-        $result = $this->container->get('ID');
-        $result->add('test', 'value');
-        $final = $this->container->get('ID');
-        $this->assertSame($result->get('test'), $final->get('test'));
-    }
-
-    public function getReturnsSameInstanceForRegisteredFactoryDefinitionEntries()
-    {
-        $this->container->add(
-            'ID',
-            $this->container->factory($this->callable, [], true)
-        );
-        $result = $this->container->get('ID');
-        $result->add('test', 'value');
-        $final = $this->container->get('ID');
-        $this->assertSame($result->get('test'), $final->get('test'));
-    }
-
-    public function getReturnsFreshInstanceForUnregisteredClassDefinitionEntries()
-    {
-        $this->container->add(
-            'ID',
-            $this->container->define(Container::class, [], false)
-        );
-        $result = $this->container->get('ID');
-        $result->add('test', 'value');
-        $final = $this->container->get('ID');
-        $this->assertFalse($final->has('test'));
-    }
-
-    public function getReturnsFreshInstanceForUnregisteredFactoryDefinitionEntries()
-    {
-        $this->container->add(
-            'ID',
-            $this->container->factory($this->callable, [], false)
-        );
-        $result = $this->container->get('ID');
-        $result->add('test', 'value');
-        $final = $this->container->get('ID');
-        $this->assertFalse($final->has('test'));
-    }
-
-    public function testGetThrowsTypeErrorForNonStringId()
+    public function testGetRejectsNonStringParameter()
     {
         $this->expectException(TypeError::class);
         $this->container->get(1);
     }
 
-    public function testGetThrowsNotFoundExceptionForNotSetId()
+    public function testHasWithValidDefinitionValue()
     {
-        $this->expectException(NotFoundExceptionInterface::class);
-        $this->container->get('not set');
+        $definition = $this->createMock(Definition::class);
+        $this->container->set('definition entry', $definition);
+        $result = $this->container->has('definition entry');
+        $this->assertTrue($result);
     }
 
-    public function testGetThrowsContainerExceptionWhenExceptionBubbles()
+    public function testHasWithValidRegistryValue()
     {
-        $factory = function() {
-            throw new \Exception();
-        };
-        $this->container->add('ID', $this->container->factory($factory));
-        $this->expectException(ContainerExceptionInterface::class);
-        $this->container->get('ID');
+        $result = $this->container->has('container');
+        $this->assertTrue($result);
     }
 
-    public function testGetThrowsContainerExceptionWhenObjectNotProduced()
+    public function testHasWithInvalidValue()
     {
-        $factory = function() {
-            return 'not object';
-        };
-        $this->container->add('ID', $this->container->factory($factory));
-        $this->expectException(ContainerExceptionInterface::class);
-        $this->container->get('ID');
+        $result = $this->container->has('invalid');
+        $this->assertFalse($result);
     }
 
-    public function testHasThrowsTypeErrorForNonStringParam()
+    public function testCompositeHasChecksSelfFirst()
+    {
+        $child = $this->createMock(ContainerInterface::class);
+        $child->expects($this->never())->method('has');
+        $this->container->addChild($child);
+        $result = $this->container->has('container');
+        $this->assertTrue($result);
+    }
+
+    public function testCompositeHasChecksChildren()
+    {
+        $child = $this->createMock(ContainerInterface::class);
+        $child->expects($this->once())
+            ->method('has')
+            ->with('test ID')
+            ->willReturn(true);
+        $this->container->addChild($child);
+        $result = $this->container->has('test ID');
+        $this->assertTrue($result);
+    }
+
+    public function testCompositeHasReturnsFalseWhenNotFound()
+    {
+        $child = $this->createMock(ContainerInterface::class);
+        $child->expects($this->once())
+            ->method('has')
+            ->with('test ID')
+            ->willReturn(false);
+        $this->container->addChild($child);
+        $result = $this->container->has('test ID');
+        $this->assertFalse($result);
+    }
+
+    public function testHasRejectsNonStringParameter()
     {
         $this->expectException(TypeError::class);
         $this->container->has(1);
     }
 
-    public function testHasReportsTrueForValidEntry()
+    public function testOffsetExistsWithValidValue()
     {
-        $this->container->add('entry', 'value');
-        $this->assertTrue($this->container->has('entry'));
+        $result = isset($this->container['container']);
+        $this->assertTrue($result);
     }
 
-    public function testHasReportsFalseForInvalidEntry()
+    public function testOffsetExistsWithInvalidValue()
     {
-        $this->assertFalse($this->container->has('entry'));
+        $result = isset($this->container['invalid']);
+        $this->assertFalse($result);
     }
 
-    public function testOffsetExistsReportsFalseForNonString()
+    public function testOffsetGetWithDefinition()
     {
-        $this->container[1] = 'value';
-        $this->assertFalse(isset($this->container[1]));
+        $container = new Container(
+            [
+                'test ID' => new Definition\ObjectDefinition(
+                    Container::class, [], true
+                ),
+            ]
+        );
+        $result = $container['test ID'];
+        $this->assertInstanceOf(Container::class, $result);
+        $this->assertNotSame($container, $result);
     }
 
-    public function testOffsetExistsReportsTrueForValidEntry()
+    public function testOffsetGetWithValue()
     {
-        $this->assertTrue(isset($this->container['container']));
+        $result = $this->container['container'];
+        $this->assertSame($this->container, $result);
     }
 
-    public function testOffsetExistsReportsFalseForVInvalidEntry()
+    public function testOffsetSetWithDefinition()
     {
-        $this->assertFalse(isset($this->container['not set']));
-    }
-
-    public function testOffsetGetReturnsNullForNonString()
-    {
-        $this->container[1] = 'value';
-        $this->assertNull($this->container[1]);
-    }
-
-    public function testOffsetGetReturnsValidEntry()
-    {
-        $this->container['entry'] = 'value';
-        $this->assertSame('value', $this->container['entry']);
-    }
-
-    public function testOffsetGetReturnsNullForInvalidEntry()
-    {
-        $this->assertNull($this->container['entry']);
-    }
-
-    public function testOffsetSetDoesNothingForNonStringId()
-    {
-        $this->container[1] = 'value';
+        $definition = $this->createMock(Definition::class);
+        $this->container['test'] = $definition;
         $this->assertAttributeEquals(
-            ['container' => $this->container],
-            'registry',
-            $this->container
+            ['test' => $definition], 'definitions', $this->container
         );
     }
 
-    public function testOffsetSetSetsValueWithStringId()
+    public function testOffsetSetWithValue()
     {
-        $this->container['entry'] = 'value';
+        $this->container['test'] = 'value';
+        $expected = [
+            'container' => $this->container,
+            'test' => 'value',
+        ];
+        $this->assertAttributeEquals($expected, 'registry', $this->container);
+    }
+
+    public function testOffsetUnsetOnRegistryKey()
+    {
+        $this->container['registry entry'] = 'test value';
         $this->assertAttributeEquals(
-            ['container' => $this->container, 'entry' => 'value'],
+            [
+                'container' => $this->container,
+                'registry entry' => 'test value'
+            ],
             'registry',
             $this->container
+        );
+        unset($this->container['registry entry']);
+        $this->assertAttributeEquals(
+            ['container' => $this->container], 'registry', $this->container
         );
     }
 
-    public function testOffsetUnsetDoesNothingForNonStringId()
+    public function testOffsetUnsetOnDefinitionKey()
     {
-        $this->container['entry'] = 'value';
-        unset($this->container[1]);
+        $definition = $this->createMock(Definition::class);
+        $this->container['definition entry'] = $definition;
         $this->assertAttributeEquals(
-            ['container' => $this->container, 'entry' => 'value'],
-            'registry',
-            $this->container
+            ['definition entry' => $definition], 'definitions', $this->container
+        );
+        unset($this->container['definition entry']);
+        $this->assertAttributeEquals([], 'definitions', $this->container);
+    }
+
+    public function testSetWithDefinition()
+    {
+        $definition = $this->createMock(Definition::class);
+        $result = $this->container->set('test', $definition);
+        $this->assertSame($this->container, $result);
+        $this->assertAttributeEquals(
+            ['test' => $definition], 'definitions', $result
         );
     }
 
-    public function testOffsetUnsetDoesNothingForNotSetId()
+    public function testSetWithValue()
     {
-        $this->container['entry'] = 'value';
-        unset($this->container['not set']);
+        $result = $this->container->set('test', 'value');
+        $expected = [
+            'container' => $this->container,
+            'test' => 'value',
+        ];
+        $this->assertSame($this->container, $result);
+        $this->assertAttributeEquals($expected, 'registry', $result);
+    }
+    
+    public function testSetDelegate()
+    {
+        $delegate = $this->createMock(ContainerInterface::class);
+        $result = $this->container->setDelegate($delegate);
+        $this->assertSame($this->container, $result);
+        $this->assertAttributeEquals($delegate, 'delegate', $result);
+    }
+
+    public function testSetSelfId()
+    {
+        $result = $this->container->setSelfId('new value');
+        $this->assertSame($this->container, $result);
         $this->assertAttributeEquals(
-            ['container' => $this->container, 'entry' => 'value'],
-            'registry',
-            $this->container
+            ['new value' => $this->container], 'registry', $result
         );
     }
 
-    public function testOffsetUnsetDeletesValueForStringId()
+    public function testSetSelfIdRejectsInvalidId()
     {
-        $this->container['entry'] = 'value';
-        unset($this->container['entry']);
-        $this->assertAttributeEquals(
-            ['container' => $this->container],
-            'registry',
-            $this->container
-        );
+        $this->expectException(InvalidArgumentException::class);
+        $this->container->setSelfId('');
+    }
+
+    public function testSelfIdExcludedFromCache()
+    {
+        $cache = $this->createMock(CacheInterface::class);
+        $cache->method('get')->willReturn([]);
+        $container = new Container([], $cache);
+        $cache->expects($this->once())
+            ->method('set')
+            ->with('container', ['test' => 'value'])
+            ->willReturn(true);
+        $container->set('test', 'value');
     }
 }

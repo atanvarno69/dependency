@@ -6,10 +6,7 @@
  * @license   https://opensource.org/licenses/MIT The MIT License
  */
 
-namespace Atanvarno\Dependency\Test;
-
-/** SPL use block. */
-use Exception;
+namespace Atanvarno\Dependency\Test\Exception;
 
 /** PSR-11 use block. */
 use Psr\Container\ContainerExceptionInterface;
@@ -18,14 +15,20 @@ use Psr\Container\ContainerExceptionInterface;
 use PHPUnit\Framework\TestCase;
 
 /** Package use block. */
-use Atanvarno\Dependency\Exception\ContainerException;
+use Atanvarno\Dependency\Exception\RuntimeException;
 
 class ContainerExceptionTest extends TestCase
-{   
-    public function testContainerExceptionImplementsInterface()
+{
+    private $exception;
+
+    public function setUp()
     {
-        $exception = new ContainerException();
-        $this->assertInstanceOf(ContainerExceptionInterface::class, $exception);
-        $this->assertInstanceOf(Exception::class, $exception);
+        $this->exception = new RuntimeException();
+    }
+
+    public function testIsThrowable()
+    {
+        $this->expectException(ContainerExceptionInterface::class);
+        throw $this->exception;
     }
 }

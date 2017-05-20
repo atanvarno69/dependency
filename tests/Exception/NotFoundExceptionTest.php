@@ -6,7 +6,7 @@
  * @license   https://opensource.org/licenses/MIT The MIT License
  */
 
-namespace Atanvarno\Dependency\Test;
+namespace Atanvarno\Dependency\Test\Exception;
 
 /** PSR-11 use block. */
 use Psr\Container\NotFoundExceptionInterface;
@@ -15,16 +15,20 @@ use Psr\Container\NotFoundExceptionInterface;
 use PHPUnit\Framework\TestCase;
 
 /** Package use block. */
-use Atanvarno\Dependency\Exception\{
-    ContainerException, NotFoundException
-};
+use Atanvarno\Dependency\Exception\NotFoundException;
 
 class NotFoundExceptionTest extends TestCase
-{   
-    public function testContainerExceptionImplementsInterface()
+{
+    private $exception;
+
+    public function setUp()
     {
-        $exception = new NotFoundException();
-        $this->assertInstanceOf(ContainerException::class, $exception);
-        $this->assertInstanceOf(NotFoundExceptionInterface::class, $exception);
+        $this->exception = new NotFoundException();
+    }
+
+    public function testIsThrowable()
+    {
+        $this->expectException(NotFoundExceptionInterface::class);
+        throw $this->exception;
     }
 }
