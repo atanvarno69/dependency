@@ -384,7 +384,7 @@ public function set(string $id, $value): Container
 
   Required. Identifier to assign.
 
-* `mixed` **&value**
+* `mixed` **$value**
   
   Required. Entry value.
 
