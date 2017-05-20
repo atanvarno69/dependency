@@ -437,13 +437,8 @@ class Container implements ArrayAccess, ContainerInterface
         string $expected,
         $actual
     ): string {
-        return sprintf(
-            'Argument %u passed to %s must be of the type %s, %s given',
-            $arg,
-            $method,
-            $expected,
-            gettype($actual)
-        );
+        $msg = 'Argument %u passed to %s must be of the type %s, %s given';
+        return sprintf($msg, $arg, $method, $expected, gettype($actual));
     }
 
     private function processDefinitions(array $definitions)
