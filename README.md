@@ -67,7 +67,7 @@ var_dump($item1 === $item2); // true
 
 You can specify that each time you get a particular ID it will be a new 
 instance when you define your entries (see 
-[lazy loaded entries](#lazy-loaded-entries)).
+[lazy loading entries](#lazy-loading-entries)).
 
 ### Checking Entries
 There are two ways to check if an entry is available, each returns `bool`:
