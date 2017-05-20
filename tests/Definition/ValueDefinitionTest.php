@@ -18,8 +18,9 @@ use PHPUnit\Framework\TestCase;
 use Atanvarno\PHPUnit\CallProtectedMethodTrait;
 
 /** Package use block. */
-use Atanvarno\Dependency\Definition;
-use Atanvarno\Dependency\Definition\ValueDefinition;
+use Atanvarno\Dependency\{
+    Definition, Definition\ValueDefinition
+};
 
 class ValueDefinitionTest extends TestCase
 {

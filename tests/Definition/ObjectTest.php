@@ -19,7 +19,10 @@ use Atanvarno\PHPUnit\CallProtectedMethodTrait;
 
 /** Package use block. */
 use Atanvarno\Dependency\{
-    Definition, Definition\ObjectDefinition, Exception\ConfigurationException
+    Definition,
+    Definition\ObjectDefinition,
+    Exception\ConfigurationException,
+    Exception\RuntimeException
 };
 
 class ObjectDefinitionTest extends TestCase
@@ -64,5 +67,25 @@ class ObjectDefinitionTest extends TestCase
             [$container]
         );
         $this->assertInstanceOf(ObjectDefinitionTest::class, $result);
+    }
+
+    public function testFactoryMethodBubblesExceptions()
+    {
+        $definition = new ObjectDefinition(
+            ObjectExceptionMock::class,
+            [],
+            true
+        );
+        $container = $this->createMock(ContainerInterface::class);
+        $this->expectException(RuntimeException::class);
+        $this->callProtectedMethod($definition, 'factoryMethod', [$container]);
+    }
+}
+
+class ObjectExceptionMock
+{
+    public function __construct()
+    {
+        throw new \Exception();
     }
 }

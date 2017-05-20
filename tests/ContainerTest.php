@@ -22,7 +22,7 @@ use PHPUnit\Framework\TestCase;
 
 /** Package use block. */
 use Atanvarno\Dependency\{Container, Definition};
-use Atanvarno\Dependency\Definition\Entry;
+use Atanvarno\Dependency\Definition\{Entry, ValueDefinition};
 use Atanvarno\Dependency\Exception\{
     ConfigurationException,
     InvalidArgumentException,
@@ -61,9 +61,18 @@ class ContainerTest extends TestCase
     public function testConstructorWithDefinition()
     {
         $definition = $this->createMock(Definition::class);
-        $container = new Container(['test' => $definition]);
+        $container = new Container([
+            'test-definition' => $definition,
+            'test-value' => new ValueDefinition('value', true)
+
+        ]);
         $this->assertAttributeEquals(
-            ['test' => $definition], 'definitions', $container
+            ['test-definition' => $definition], 'definitions', $container
+        );
+        $this->assertAttributeEquals(
+            ['test-value' => 'value', 'container' => $container],
+            'registry',
+            $container
         );
     }
 
@@ -78,7 +87,9 @@ class ContainerTest extends TestCase
     public function testConstructorWithCacheFromDefinition()
     {
         $cache = $this->createMock(CacheInterface::class);
-        $cache->method('get')->willReturn([]);
+        $cache->method('get')->willReturn([
+            'test-value' => 'value',
+        ]);
         $callable = function($cache) {return $cache;};
         $container = new Container(
             [
@@ -89,6 +100,15 @@ class ContainerTest extends TestCase
             new Entry('cache')
         );
         $this->assertAttributeEquals($cache, 'cache', $container);
+        $this->assertAttributeEquals(
+            [
+                'test-value' => 'value',
+                'container' => $container,
+                'cache' => $cache
+            ],
+            'registry',
+            $container
+        );
     }
 
     public function testConstructorWithCacheKey()
@@ -253,8 +273,6 @@ class ContainerTest extends TestCase
         $this->assertAttributeEquals([], 'definitions', $this->container);
     }
 
-    // todo: delete() - cache interactions.
-
     public function testGetFromDefinition()
     {
         $container = new Container(
@@ -312,8 +330,6 @@ class ContainerTest extends TestCase
         $this->expectException(TypeError::class);
         $this->container->get(1);
     }
-
-    // todo: get() - cache interactions.
 
     public function testHasWithValidDefinitionValue()
     {
@@ -482,8 +498,6 @@ class ContainerTest extends TestCase
         $this->assertAttributeEquals($delegate, 'delegate', $result);
     }
 
-    // todo: set() - cache interactions.
-
     public function testSetSelfId()
     {
         $result = $this->container->setSelfId('new value');
@@ -497,5 +511,17 @@ class ContainerTest extends TestCase
     {
         $this->expectException(InvalidArgumentException::class);
         $this->container->setSelfId('');
+    }
+
+    public function testSelfIdExcludedFromCache()
+    {
+        $cache = $this->createMock(CacheInterface::class);
+        $cache->method('get')->willReturn([]);
+        $container = new Container([], $cache);
+        $cache->expects($this->once())
+            ->method('set')
+            ->with('container', ['test' => 'value'])
+            ->willReturn(true);
+        $container->set('test', 'value');
     }
 }
