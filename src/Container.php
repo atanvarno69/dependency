@@ -75,7 +75,7 @@ use Atanvarno\Dependency\Exception\{
  *
  * @api
  */
-class Container implements ArrayAccess, ContainerInterface
+class Container implements ArrayAccess, DelegateContainer
 {
     /**
      * @internal Class properties.
@@ -151,9 +151,10 @@ class Container implements ArrayAccess, ContainerInterface
      *
      * @return $this Fluent interface, allowing multiple calls to be chained.
      */
-    public function addChild(ContainerInterface $child): Container
+    public function addChild(DelegateContainer $child): DelegateContainer
     {
         $this->children[] = $child;
+        $child->setDelegate($this);
         return $this;
     }
 
@@ -368,9 +369,12 @@ class Container implements ArrayAccess, ContainerInterface
      *
      * @return $this Fluent interface, allowing multiple calls to be chained.
      */
-    public function setDelegate(ContainerInterface $delegate): Container
+    public function setDelegate(DelegateContainer $delegate): DelegateContainer
     {
         $this->delegate = $delegate;
+        if (!$delegate->isChild($this)) {
+            $delegate->addChild($this);
+        }
         return $this;
     }
 
@@ -395,6 +399,18 @@ class Container implements ArrayAccess, ContainerInterface
         $this->selfId = $id;
         $this->registry[$this->selfId] = $this;
         return $this;
+    }
+
+    /**
+     * @internal
+     */
+    public function isChild(Container $container): bool {
+        foreach($this->children as $child) {
+            if ($child === $container) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private function compositeGet(string $id)
