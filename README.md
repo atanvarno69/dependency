@@ -18,7 +18,7 @@ container, implementing [`ArrayAccess`](http://php.net/manual/en/class.arrayacce
 bare bones container only.
 
 ## Requirements
-**PHP >= 7.0** is required, but the latest stable version of PHP is recommended.
+**PHP >= 8.0** is required, but the latest stable version of PHP is recommended.
 
 ## Installation
 Atanvarno\Dependency is available on [Packagist](https://packagist.org/packages/atanvarno/dependency) 

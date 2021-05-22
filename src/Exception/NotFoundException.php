@@ -2,25 +2,19 @@
 /**
  * @package   Atanvarno\Dependency
  * @author    atanvarno69 <https://github.com/atanvarno69>
- * @copyright 2017 atanvarno.com
+ * @copyright 2021 atanvarno.com
  * @license   https://opensource.org/licenses/MIT The MIT License
  */
- 
+
+declare(strict_types = 1);
+
 namespace Atanvarno\Dependency\Exception;
 
-/** SPL use block. */
 use Exception;
-
-/** PSR-11 use block. */
-use Psr\Container\NotFoundExceptionInterface;
+use Psr\Container\NotFoundExceptionInterface as NotFound;
 
 /** 
- * Atanvarno\Dependency\Exception\NotFoundException
- *
  * Exception thrown when resolving a non-existent entry.
- *
- * Implements `Psr\Container\NotFoundExceptionInterface`.
  */
-class NotFoundException extends Exception implements NotFoundExceptionInterface
-{
-}
+class NotFoundException extends Exception implements NotFound
+{}

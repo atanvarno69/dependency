@@ -2,32 +2,33 @@
 /**
  * @package   Atanvarno\Dependency
  * @author    atanvarno69 <https://github.com/atanvarno69>
- * @copyright 2017 atanvarno.com
+ * @copyright 2021 atanvarno.com
  * @license   https://opensource.org/licenses/MIT The MIT License
  */
 
+declare(strict_types = 1);
+
 namespace Atanvarno\Dependency\Definition;
 
-/** PSR-11 use block. */
-use Psr\Container\ContainerInterface;
-
-/** Package use block. */
+use Psr\Container\ContainerInterface as Container;
 use Atanvarno\Dependency\Exception\ConfigurationException;
 
-/** @internal */
+/**
+ * Method call after instantiation.
+ *
+ * @internal
+ */
 class CallMethod implements InstanceAction
 {
     use ResolveParametersTrait;
 
-    private $name, $parameters;
+    public function __construct(private string $name, private array $parameters)
+    {}
 
-    public function __construct(string $methodName, array $parameters)
-    {
-        $this->name = $methodName;
-        $this->parameters = $parameters;
-    }
-
-    public function __invoke($object, ContainerInterface $container)
+    /**
+     * @throws ConfigurationException Method does not exist on given object.
+     */
+    public function __invoke(object $object, Container $container): object
     {
         if (!method_exists($object, $this->name)) {
             $msg = sprintf(

@@ -2,52 +2,43 @@
 /**
  * @package   Atanvarno\Dependency
  * @author    atanvarno69 <https://github.com/atanvarno69>
- * @copyright 2017 atanvarno.com
+ * @copyright 2021 atanvarno.com
  * @license   https://opensource.org/licenses/MIT The MIT License
  */
 
+declare(strict_types = 1);
+
 namespace Atanvarno\Dependency\Definition;
 
-/** SPL use block. */
-use Throwable;
-
-/** PSR-11 use block. */
-use Psr\Container\ContainerInterface;
-
-/** Package use block. */
+use Closure, Throwable;
+use Psr\Container\ContainerInterface as Container;
 use Atanvarno\Dependency\{
     Definition, Exception\RuntimeException
 };
 
 /**
- * Atanvarno\Dependency\Definition\FactoryDefinition
- *
  * Definition for a container entry loaded by calling a use-defined callable.
+ *
+ * Returned by the helper function `factory()`.
  */
 class FactoryDefinition implements Definition
 {
-    /** Trait use block. */
     use DefinitionTrait;
 
-    /**
-     * @internal Class properties.
-     *
-     * @var callable $callable
-     * @var mixed[]  $parameters
-     */
-    private $callable, $parameters;
-    
     public function __construct(
-        callable $callable,
-        array $parameters,
-        bool $register
+        private Closure $callable,
+        private array $parameters,
+        private bool $register,
     ) {
-        $this->callable = $callable;
-        $this->parameters = $parameters;
-        $this->register = $register;
     }
-    
-    protected function factoryMethod(ContainerInterface $container)
+
+    /**
+     * @inheritdoc
+     *
+     * @throws RuntimeException Error encountered calling the user-defined
+     *                          callable.
+     */
+    protected function factoryMethod(Container $container): mixed
     {
         $parameters = $this->resolveParameter($this->parameters, $container);
         try {

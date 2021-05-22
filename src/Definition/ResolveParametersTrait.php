@@ -2,19 +2,30 @@
 /**
  * @package   Atanvarno\Dependency
  * @author    atanvarno69 <https://github.com/atanvarno69>
- * @copyright 2017 atanvarno.com
+ * @copyright 2021 atanvarno.com
  * @license   https://opensource.org/licenses/MIT The MIT License
  */
 
+declare(strict_types = 1);
+
 namespace Atanvarno\Dependency\Definition;
 
-/** PSR-11 use block. */
-use Psr\Container\ContainerInterface;
+use Psr\Container\ContainerInterface as Container;
 
+/**
+ * Trait providing `resolveParameter` method for building dependencies.
+ *
+ * @internal
+ */
 trait ResolveParametersTrait
 {
-    private function resolveParameter($parameter, ContainerInterface $container)
-    {
+    /**
+     * Resolve `Entry` or `Entry` array into a final value.
+     */
+    private function resolveParameter(
+        Entry|array $parameter,
+        Container $container,
+    ): mixed {
         if ($parameter instanceof Entry) {
             return $container->get((string) $parameter);
         }

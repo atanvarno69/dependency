@@ -2,31 +2,33 @@
 /**
  * @package   Atanvarno\Dependency
  * @author    atanvarno69 <https://github.com/atanvarno69>
- * @copyright 2017 atanvarno.com
+ * @copyright 2021 atanvarno.com
  * @license   https://opensource.org/licenses/MIT The MIT License
  */
 
+declare(strict_types = 1);
+
 namespace Atanvarno\Dependency\Definition;
 
-/** PSR-11 use block. */
 use Psr\Container\ContainerInterface;
-
-/** Package use block. */
 use Atanvarno\Dependency\Exception\ConfigurationException;
 
+/**
+ * Public property to set after instantiation.
+ *
+ * @internal
+ */
 class SetProperty implements InstanceAction
 {
     use ResolveParametersTrait;
 
-    private $name, $value;
+    public function __construct(private string $name, private mixed $value)
+    {}
 
-    public function __construct(string $propertyName, $value)
-    {
-        $this->name = $propertyName;
-        $this->value = $value;
-    }
-
-    public function __invoke($object, ContainerInterface $container)
+    /**
+     * @throws ConfigurationException Property does not exist on given object.
+     */
+    public function __invoke($object, ContainerInterface $container): object
     {
         if (!property_exists($object, $this->name)) {
             $msg = sprintf(

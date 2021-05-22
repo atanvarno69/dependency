@@ -2,19 +2,18 @@
 /**
  * @package   Atanvarno\Dependency
  * @author    atanvarno69 <https://github.com/atanvarno69>
- * @copyright 2017 atanvarno.com
+ * @copyright 2021 atanvarno.com
  * @license   https://opensource.org/licenses/MIT The MIT License
  */
 
+declare(strict_types = 1);
+
 namespace Atanvarno\Dependency;
 
-/** PSR-11 use block. */
 use Atanvarno\Dependency\Exception\RuntimeException;
 use Psr\Container\ContainerInterface;
 
 /**
- * Atanvarno\Dependency\Definition
- *
  * A definition for a lazy loaded `Container` entry.
  *
  * Provides a fluent interface to define multiple post-instantiation actions.
@@ -24,50 +23,42 @@ use Psr\Container\ContainerInterface;
 interface Definition
 {
     /**
-     * Builds the entry
+     * Build the entry.
      *
      * @internal For use by `Container`.
      *
-     * @param ContainerInterface $container Container to resolve dependencies.
-     *
      * @throws RuntimeException Unable to build.
-     *
-     * @return mixed The entry.
      */
-    public function build(ContainerInterface $container);
+    public function build(ContainerInterface $container): mixed;
 
     /**
      * Get the registration flag.
      *
      * @internal For use by `Container`.
-     *
-     * @return bool Registration flag.
      */
     public function isRegistered(): bool;
 
     /**
-     * Adds a method to call after object instantiation.
+     * Add a method to call after object instantiation.
      *
-     * Note if the definition does not define an object, adding a method to
+     * Pass the method name and optionally an array of parameters to pass to the
+     * method.
+     *
+     * The parameters array may contain raw values or references to other
+     * container entries, using the `entry()` helper function.
+     *
+     * Note: if the definition does not define an object, adding a method to
      * call will do nothing.
-     *
-     * @param string $name       Method name to call.
-     * @param array  $parameters A list of parameters to pass to the method.
-     *
-     * @return $this Fluent interface, allowing multiple calls to be chained.
      */
-    public function method(string $name, array $parameters = []): Definition;
+    public function method(string $name, array $parameters = []): static;
     
     /**
-     * Sets a public property after object instantiation.
+     * Set a public property after object instantiation.
      *
-     * Note if the definition does not define an object, setting a property
+     * Pass the property name and its value.
+     *
+     * Note: if the definition does not define an object, setting a property
      * will do nothing.
-     *
-     * @param string $name  Property name to set.
-     * @param mixed  $value Value to set.
-     *
-     * @return $this Fluent interface, allowing multiple calls to be chained.
      */
-    public function property(string $name, $value = null): Definition;
+    public function property(string $name, mixed $value = null): static;
 }

@@ -2,9 +2,11 @@
 /**
  * @package   Atanvarno\Dependency
  * @author    atanvarno69 <https://github.com/atanvarno69>
- * @copyright 2017 atanvarno.com
+ * @copyright 2021 atanvarno.com
  * @license   https://opensource.org/licenses/MIT The MIT License
  */
+
+declare(strict_types = 1);
 
 namespace Atanvarno\Dependency;
 
@@ -19,13 +21,9 @@ use Atanvarno\Dependency\Definition\{
 if (!function_exists('Atanvarno\Dependency\entry')) {
 
     /**
-     * Helper for referencing a container entry in a definition.
+     * Reference a container entry by its identifier in a definition.
      *
      * @api
-     *
-     * @param string $id Container entry identifier to reference.
-     *
-     * @return Entry A reference to the container entry.
      */
     function entry(string $id): Entry
     {
@@ -36,17 +34,16 @@ if (!function_exists('Atanvarno\Dependency\entry')) {
 if (!function_exists('Atanvarno\Dependency\factory')) {
 
     /**
-     * Helper for defining a container entry using a factory function/callable.
+     * Define a container entry using a factory callable.
+     *
+     * Optionally accepts an array of parameters to pass to the factory. These
+     * may be other container entries by using the `entry()` helper function.
+     *
+     * Optionally set whether the entry should be registered by the container,
+     * that is the same instance is returned by each container `get()` call.
+     * Defaults to `true`.
      *
      * @api
-     *
-     * @param callable $callable   A callable that returns the desired value.
-     * @param array    $parameters A list of parameters to pass to the given
-     *      callable.
-     * @param bool     $register   Whether the entry returned should be
-     *      registered by the container.
-     *
-     * @return Definition A container definition.
      */
     function factory(
         callable $callable,
@@ -58,20 +55,22 @@ if (!function_exists('Atanvarno\Dependency\factory')) {
 }
 
 if (!function_exists('Atanvarno\Dependency\object')) {
-
     /**
-     * Helper for defining an object container entry.
+     * Define an object container entry from a class name.
+     *
+     * Use of the `::class` constant is recommended for the class name.
+     *
+     * Optionally accepts an array of parameters to pass to the object's
+     * constructor. These may be other container entries by using the `entry()`
+     * helper function.
+     *
+     * Optionally set whether the entry should be registered by the container,
+     * that is the same instance is returned by each container `get()` call.
+     * Defaults to `true`.
      *
      * @api
      *
-     * @param string $className  The class name of the object to define. Use of
-     *      the`::class` constant is recommended.
-     * @param array  $parameters A list of parameters to pass to the given
-     *      class's constructor.
-     * @param bool   $register   Whether the entry returned should be
-     *      registered by the container.
-     *
-     * @return Definition A container definition.
+     * @throws Exception\ConfigurationException Given class does not exist.
      */
     function object(
         string $className,
@@ -85,17 +84,15 @@ if (!function_exists('Atanvarno\Dependency\object')) {
 if (!function_exists('Atanvarno\Dependency\value')) {
 
     /**
-     * Helper for defining a generic value container entry.
+     * Define an arbitrary value container entry.
+     *
+     * Optionally set whether the entry should be registered by the container,
+     * that is the same instance is returned by each container `get()` call.
+     * Defaults to `true`.
      *
      * @api
-     *
-     * @param mixed $value    The value the container should return.
-     * @param bool  $register Whether the value returned should be
-     *      registered by the container.
-     *
-     * @return Definition A container definition.
      */
-    function value($value, bool $register = true): Definition
+    function value(mixed $value, bool $register = true): Definition
     {
         return new ValueDefinition($value, $register);
     }

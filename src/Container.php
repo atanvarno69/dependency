@@ -2,22 +2,17 @@
 /**
  * @package   Atanvarno\Dependency
  * @author    atanvarno69 <https://github.com/atanvarno69>
- * @copyright 2017 atanvarno.com
+ * @copyright 2021 atanvarno.com
  * @license   https://opensource.org/licenses/MIT The MIT License
  */
 
+declare(strict_types = 1);
+
 namespace Atanvarno\Dependency;
 
-/** SPL use block. */
-use ArrayAccess, TypeError;
-
-/** PSR-11 use block. */
+use ArrayAccess;
 use Psr\Container\{ContainerInterface, ContainerExceptionInterface};
-
-/** PSR-16 use block. */
-use Psr\SimpleCache\{CacheInterface, CacheException};
-
-/** Package use block. */
+use Psr\SimpleCache\{CacheInterface as Cache, CacheException};
 use Atanvarno\Dependency\Definition\{Entry, ValueDefinition};
 use Atanvarno\Dependency\Exception\{
     ConfigurationException,
@@ -28,15 +23,14 @@ use Atanvarno\Dependency\Exception\{
 };
 
 /**
- * Atanvarno\Dependency\Container
- *
  * A basic container implementing PSR-11 `ContainerInterface`.
  *
  * The container may contain and return any PHP type. These container entries
  * are associated with a unique user-defined `string` identifier.
  *
  * By default, a `Container` instance will associate itself with the identifier
- * `container`. Use the method `setSelfId()` to change this value.
+ * `Atanvarno\Dependency\Container`. Use the method `setSelfId()` to change this
+ * value.
  *
  * `Container` implements PSR-11 `ContainerInterface` and thus uses the method
  * `get()` is used to retrieve an entry and the method `has()` is used to check
@@ -70,7 +64,7 @@ use Atanvarno\Dependency\Exception\{
  * other) offset types used with array syntax will be silently cast to `string`.
  *
  * `Container` can cache its contained entries. To use caching, provide a
- * PSR-16 `CacheInterface` instance to the constructor, optionally with a key
+ * PSR-16 `Cache` instance to the constructor, optionally with a key
  * to use for its cache entry.
  *
  * @api
@@ -80,62 +74,57 @@ class Container implements ArrayAccess, DelegateContainer
     /**
      * @internal Class properties.
      *
-     * @var CacheInterface|null     $cache       PSR-16 cache.
+     * @var Cache|null              $cache       PSR-16 cache.
      * @var string                  $cacheKey    Cache key.
      * @var ContainerInterface[]    $children    Subordinate containers.
      * @var Definition[]            $definitions Definitions array.
-     * @var ContainerInterface|null $delegate    Delegate container.
-     * @var mixed[]                 $registry    Registered values.
+     * @var DelegateContainer|null $delegate    Delegate container.
+     * @var array                   $registry    Registered values.
      * @var string                  $selfId      Self identifier.
      */
-    private
-        $cache,
-        $cacheKey,
-        $children,
-        $definitions,
-        $delegate,
-        $registry,
-        $selfId;
-    
+    private ?Cache $cache;
+    private array $children;
+    private array $definitions;
+    private ?DelegateContainer $delegate;
+    private array $registry;
+    private string $selfId;
+
     /**
-     * Builds a `Container` instance.
+     * Build a `Container` instance.
      *
      * Optionally accepts an array of `Definition` instances indexed by entry
      * identifiers. These will be added to the container. This array can be
      * returned from a configuration file.
      *
-     * Optionally accepts a PSR-16 `CacheInterface` instance; or an `Entry`
+     * Optionally accepts a PSR-16 `Cache` instance; or an `Entry`
      * instance that refers to a PSR-16 cache instance. Thus, a cache can be
      * gotten from the provided definitions array. If this is the case, the
      * container will be updated with the values from the cache.
      *
-     * Optionally accepts a cache key to store the container's data.
+     * Optionally accepts a cache key to store the container's data. The default
+     * value is `Container::class`.
      *
-     * @param Definition[]              $definitions Entry definitions indexed
-     *      by identifiers.
-     * @param CacheInterface|Entry|null $cache       PSR-16 cache.
-     * @param string                    $cacheKey    Cache key for cached data.
+     * @param Definition[] $definitions Entry definitions, identifier indexed.
      *
      * @throws ConfigurationException   Definitions array does not contain only
-     *      `Definition` instances.
-     * @throws InvalidArgumentException Given cache is not a valid type.
+     *                                  `Definition` instances.
      * @throws InvalidArgumentException Given cache key is an empty string.
      * @throws RuntimeException         Error building cache instance.
      * @throws RuntimeException         Error getting data from cache.
      * @throws UnexpectedValueException Built cache instance is not a PSR-16
      *      cache.
      * @throws UnexpectedValueException Invalid data returned from cache.
+     * @throws \Psr\SimpleCache\InvalidArgumentException
      *
      */
     public function __construct(
         array $definitions = [],
-        $cache = null,
-        string $cacheKey = 'container'
+        Cache|Entry|null $cache = null,
+        private string $cacheKey = Container::class
     ) {
         $this->zeroLengthStringCheck($cacheKey, 'cache key');
         $this->processDefinitions($definitions);
         $this->cache = $this->resolveCache($cache);
-        $this->cacheKey = $cacheKey;
         $this->processRegistry();
         $this->children = [];
         $this->delegate = null;
@@ -143,15 +132,9 @@ class Container implements ArrayAccess, DelegateContainer
     }
 
     /**
-     * Adds a child container.
-     *
-     * This will make the container act as a composite container.
-     *
-     * @param ContainerInterface $child Child container to add.
-     *
-     * @return $this Fluent interface, allowing multiple calls to be chained.
+     * @inheritdoc
      */
-    public function addChild(DelegateContainer $child): DelegateContainer
+    public function addChild(DelegateContainer $child): static
     {
         $this->children[] = $child;
         $child->setDelegate($this);
@@ -161,33 +144,32 @@ class Container implements ArrayAccess, DelegateContainer
     /**
      * Clear the container's cached values.
      *
-     * If no cache has been set, this method will do nothing.
-     *
-     * @throws RuntimeException Unable to clear cache.
-     *
-     * @return $this Fluent interface, allowing multiple calls to be chained.
+     * If no cache has been set, this method will do nothing and return `false`.
      */
-    public function clearCache(): Container
+    public function clearCache(): bool
     {
-        if (isset($this->cache)) {
+        if ($this->cache === null) {
+            return false;
+        }
+        try {
             $value = $this->cache->delete($this->cacheKey);
             if ($value === false) {
-                throw new RuntimeException('Unable to clear cache');
+                return false;
             }
+        } catch (\Psr\SimpleCache\InvalidArgumentException) {
+            return false;
         }
-        return $this;
+        return true;
     }
 
     /**
-     * Deletes an entry from the container.
+     * Delete an entry from the container.
      *
-     * @param string $id Entry to delete.
+     * @throws \Psr\SimpleCache\InvalidArgumentException
      *
      * @throws InvalidArgumentException Given identifier is an empty string.
-     *
-     * @return $this Fluent interface, allowing multiple calls to be chained.
      */
-    public function delete(string $id): Container
+    public function delete(string $id): static
     {
         $this->zeroLengthStringCheck($id, 'identifier');
         if (isset($this->registry[$id])) {
@@ -201,24 +183,16 @@ class Container implements ArrayAccess, DelegateContainer
     }
 
     /**
-     * Retrieves an entry from the container.
+     * Retrieve an entry from the container.
      *
-     * @param string $id Entry to retrieve.
-     *
-     * @throws TypeError                Given $id is not a string.
      * @throws InvalidArgumentException Given identifier is an empty string.
      * @throws NotFoundException        No entry was found for this identifier.
-     * @throws RuntimeException         Error while retrieving the entry.
      *
-     * @return mixed The entry.
+     * @throws RuntimeException
+     * @throws \Psr\SimpleCache\InvalidArgumentException
      */
-    public function get($id)
+    public function get(string $id): mixed
     {
-        if (!is_string($id)) {
-            throw new TypeError(
-                $this->getBcTypeErrorMessage(1, __METHOD__, 'string', $id)
-            );
-        }
         $this->zeroLengthStringCheck($id, 'identifier');
         return (!empty($this->children))
             ? $this->compositeGet($id)
@@ -226,26 +200,16 @@ class Container implements ArrayAccess, DelegateContainer
     }
 
     /**
-     * Checks if an entry exists.
+     * Check if an entry exists.
      *
      * If the container is acting as a composite container (it has children),
      * this method will check for a matching entry in itself first, then in its
      * children.
      *
-     * @param string $id Entry to check for.
-     *
-     * @throws TypeError                Given identifier is not a string.
      * @throws InvalidArgumentException Given identifier is an empty string.
-     *
-     * @return bool `true` if the entry exists, `false` otherwise.
      */
-    public function has($id)
+    public function has(string $id): bool
     {
-        if (!is_string($id)) {
-            throw new TypeError(
-                $this->getBcTypeErrorMessage(1, __METHOD__, 'string', $id)
-            );
-        }
         $this->zeroLengthStringCheck($id, 'identifier');
         return (!empty($this->children))
             ? $this->compositeHas($id)
@@ -260,60 +224,48 @@ class Container implements ArrayAccess, DelegateContainer
      *
      * Calls `has()` internally.
      *
-     * @param mixed $offset Offset (entry) to check for. The value will be
-     *      cast to `string`.
-     *
      * @throws InvalidArgumentException Given offset resolves to an empty
-     *      string.
-     *
-     * @return bool `true` if the offset (entry) exists, `false` otherwise.
+     *                                  string.
      */
-    public function offsetExists($offset): bool
+    public function offsetExists(mixed $offset): bool
     {
         return $this->has((string) $offset);
     }
 
     /**
-     * Retrieves an offset (entry) from the container.
+     * Retrieve an offset (entry) from the container.
      *
      * `ArrayAccess` method executed when using array syntax on a `Container`
      * object.
      *
      * Calls `get()` internally.
      *
-     * @param mixed $offset Offset (entry) to retrieve. The value will be cast
-     *      to `string`.
-     *
      * @throws InvalidArgumentException Given offset resolves to an empty
      *      string.
      * @throws NotFoundException        No entry was found for this offset.
-     * @throws RuntimeException         Error while retrieving the offset.
-     *
-     * @return mixed The entry.
+     * @throws RuntimeException
+     * @throws \Psr\SimpleCache\InvalidArgumentException
      */
-    public function offsetGet($offset)
+    public function offsetGet(mixed $offset): mixed
     {
         return $this->get((string) $offset);
     }
 
     /**
-     * Assigns a value to the specified offset (identifier).
+     * Assign a value to the specified offset (identifier).
      *
      * `ArrayAccess` method executed when using array syntax on a `Container`
      * object.
      *
      * Calls `set()` internally.
      *
-     * @param mixed  $offset Offset (identifier) to add. The value will be cast
-     *      to `string`.
-     * @param mixed  $value  Entry value.
-     *
      * @throws InvalidArgumentException Given offset resolves to an empty
-     *      string.
+     * @throws \Psr\SimpleCache\InvalidArgumentException
+     *                                  string.
      *
      * @return void
      */
-    public function offsetSet($offset, $value)
+    public function offsetSet(mixed $offset, mixed $value)
     {
         $this->set((string) $offset, $value);
     }
@@ -326,30 +278,22 @@ class Container implements ArrayAccess, DelegateContainer
      *
      * Calls `delete()` internally.
      *
-     * @param mixed $offset Offset (entry) to unset (delete). The value will be
-     *      cast to `string`.
-     *
      * @throws InvalidArgumentException Given offset resolves to an empty
+     * @throws \Psr\SimpleCache\InvalidArgumentException
      *      string.
-     *
-     * @return void
      */
-    public function offsetUnset($offset)
+    public function offsetUnset(mixed $offset): void
     {
         $this->delete((string) $offset);
     }
 
     /**
-     * Assigns a value to the specified identifier.
-     *
-     * @param string $id    Identifier to assign.
-     * @param mixed  $value Entry value.
+     * Assign a value to the specified identifier.
      *
      * @throws InvalidArgumentException Given identifier is an empty string.
-     *
-     * @return $this Fluent interface, allowing multiple calls to be chained.
+     * @throws \Psr\SimpleCache\InvalidArgumentException
      */
-    public function set(string $id, $value): Container
+    public function set(string $id, mixed $value): static
     {
         $this->zeroLengthStringCheck($id, 'identifier');
         $this->delete($id);
@@ -364,12 +308,8 @@ class Container implements ArrayAccess, DelegateContainer
 
     /**
      * Sets a container to delegate dependency resolution to.
-     *
-     * @param ContainerInterface $delegate Delegate container.
-     *
-     * @return $this Fluent interface, allowing multiple calls to be chained.
      */
-    public function setDelegate(DelegateContainer $delegate): DelegateContainer
+    public function setDelegate(DelegateContainer $delegate): static
     {
         $this->delegate = $delegate;
         if (!$delegate->isChild($this)) {
@@ -384,13 +324,10 @@ class Container implements ArrayAccess, DelegateContainer
      * When instantiated, the container self identifier will be 'container'.
      * Use this method when a different identifier is required.
      *
-     * @param string $id Identifier to assign to the container itself.
-     *
      * @throws InvalidArgumentException Given identifier is an empty string.
-     *
-     * @return $this Fluent interface, allowing multiple calls to be chained.
+     * @throws \Psr\SimpleCache\InvalidArgumentException
      */
-    public function setSelfId(string $id): Container
+    public function setSelfId(string $id): static
     {
         $this->zeroLengthStringCheck($id, 'identifier');
         if (isset($this->selfId)) {
@@ -401,10 +338,9 @@ class Container implements ArrayAccess, DelegateContainer
         return $this;
     }
 
-    /**
-     * @internal
-     */
-    public function isChild(Container $container): bool {
+    /** @internal */
+    public function isChild(Container $container): bool
+    {
         foreach($this->children as $child) {
             if ($child === $container) {
                 return true;
@@ -413,7 +349,14 @@ class Container implements ArrayAccess, DelegateContainer
         return false;
     }
 
-    private function compositeGet(string $id)
+    /**
+     * @internal
+     *
+     * @throws NotFoundException
+     * @throws RuntimeException
+     * @throws \Psr\SimpleCache\InvalidArgumentException
+     */
+    private function compositeGet(string $id): mixed
     {
         if ($this->selfHas($id)) {
             return $this->selfGet($id);
@@ -433,7 +376,8 @@ class Container implements ArrayAccess, DelegateContainer
         $child = $this->children[$has];
         return $child->get($id);
     }
-    
+
+    /** @internal */
     private function compositeHas(string $id): bool
     {
         if ($this->selfHas($id)) {
@@ -446,17 +390,13 @@ class Container implements ArrayAccess, DelegateContainer
         }
         return false;
     }
-    
-    private function getBcTypeErrorMessage(
-        int $arg,
-        string $method,
-        string $expected,
-        $actual
-    ): string {
-        $msg = 'Argument %u passed to %s must be of the type %s, %s given';
-        return sprintf($msg, $arg, $method, $expected, gettype($actual));
-    }
 
+    /**
+     * @internal
+     *
+     * @throws ConfigurationException
+     * @throws RuntimeException
+     */
     private function processDefinitions(array $definitions)
     {
         foreach ($definitions as $id => $definition) {
@@ -472,7 +412,14 @@ class Container implements ArrayAccess, DelegateContainer
         }
     }
 
-    private function processRegistry()
+    /**
+     * @internal
+     *
+     * @throws RuntimeException
+     * @throws UnexpectedValueException
+     * @throws \Psr\SimpleCache\InvalidArgumentException
+     */
+    private function processRegistry(): void
     {
         if (!isset($this->cache)) {
             return;
@@ -507,8 +454,15 @@ class Container implements ArrayAccess, DelegateContainer
             $this->updateCache();
         }
     }
-    
-    private function selfGet(string $id)
+
+    /**
+     * @internal
+     *
+     * @throws NotFoundException
+     * @throws RuntimeException
+     * @throws \Psr\SimpleCache\InvalidArgumentException
+     */
+    private function selfGet(string $id): mixed
     {
         if (!$this->selfHas($id)) {
             $msg = sprintf('Container entry "%s" not found', $id);
@@ -526,7 +480,8 @@ class Container implements ArrayAccess, DelegateContainer
         }
         return $return;
     }
-    
+
+    /** @internal */
     private function selfHas(string $id): bool
     {
         if (isset($this->registry[$id])) {
@@ -537,10 +492,18 @@ class Container implements ArrayAccess, DelegateContainer
         }
         return false;
     }
-    
-    private function resolveCache($cache)
+
+    /**
+     * @internal
+     *
+     * @throws InvalidArgumentException
+     * @throws RuntimeException
+     * @throws UnexpectedValueException
+     * @throws \Psr\SimpleCache\InvalidArgumentException
+     */
+    private function resolveCache(Cache|Entry|null $cache): ?Cache
     {
-        if ($cache instanceof CacheInterface || is_null($cache)) {
+        if ($cache instanceof Cache || is_null($cache)) {
             return $cache;
         }
         if (!$cache instanceof Entry) {
@@ -557,12 +520,12 @@ class Container implements ArrayAccess, DelegateContainer
             );
             throw new RuntimeException($msg, $caught->getCode(), $caught);
         }
-        if (!$return instanceof CacheInterface) {
+        if (!$return instanceof Cache) {
             $type = (is_object($return))
                 ? get_class($return)
                 : gettype($return);
             $msg = sprintf(
-                'Entry "%s" resolves to a %s, PSR-16 CacheInterface expected',
+                'Entry "%s" resolves to a %s, PSR-16 Cache expected',
                 (string) $cache,
                 $type
             );
@@ -570,8 +533,13 @@ class Container implements ArrayAccess, DelegateContainer
         }
         return $return;
     }
-    
-    private function updateCache()
+
+    /**
+     * @internal
+     *
+     * @throws \Psr\SimpleCache\InvalidArgumentException
+     */
+    private function updateCache(): void
     {
         if (isset($this->cache)) {
             $registry = $this->registry;
@@ -582,7 +550,15 @@ class Container implements ArrayAccess, DelegateContainer
         }
     }
 
-    private function zeroLengthStringCheck(string $string, string $name)
+    /**
+     * @internal
+     *
+     * @param string $string
+     * @param string $name
+     *
+     * @throws InvalidArgumentException
+     */
+    private function zeroLengthStringCheck(string $string, string $name): void
     {
         if (strlen($string) < 1) {
             $msg = sprintf('Given %s is an empty string', $name);

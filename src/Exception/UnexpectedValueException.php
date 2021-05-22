@@ -2,24 +2,19 @@
 /**
  * @package   Atanvarno\Dependency
  * @author    atanvarno69 <https://github.com/atanvarno69>
- * @copyright 2017 atanvarno.com
+ * @copyright 2021 atanvarno.com
  * @license   https://opensource.org/licenses/MIT The MIT License
  */
 
+declare(strict_types = 1);
+
 namespace Atanvarno\Dependency\Exception;
 
-/** SPL use block. */
 use Exception;
-
-/** PSR-11 use block. */
-use Psr\Container\ContainerExceptionInterface;
+use Psr\Container\ContainerExceptionInterface as ContainerException;
 
 /**
- * Atanvarno\Dependency\Exception\UnexpectedValueException
- *
  * Exception thrown when an unexpected value is encountered.
  */
-class UnexpectedValueException extends Exception implements
-    ContainerExceptionInterface
-{
-}
+class UnexpectedValueException extends Exception implements ContainerException
+{}

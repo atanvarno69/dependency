@@ -2,21 +2,17 @@
 /**
  * @package   Atanvarno\Dependency
  * @author    atanvarno69 <https://github.com/atanvarno69>
- * @copyright 2017 atanvarno.com
+ * @copyright 2021 atanvarno.com
  * @license   https://opensource.org/licenses/MIT The MIT License
  */
 
+declare(strict_types = 1);
+
 namespace Atanvarno\Dependency\Definition;
 
-/** PSR-11 use block. */
-use Psr\Container\ContainerInterface;
-
-/** Package use block. */
-use Atanvarno\Dependency\Definition;
+use Psr\Container\ContainerInterface as Container;
 
 /**
- * Atanvarno\Dependency\Definition\DefinitionTrait
- *
  * Trait providing `Definition` implementation functionality.
  */
 trait DefinitionTrait
@@ -24,23 +20,18 @@ trait DefinitionTrait
     /** Trait use block. */
     use ResolveParametersTrait;
 
-    /**
-     * @internal Class properties.
-     *
-     * @var InstanceAction[] $actions
-     * @var bool             $register
-     */
-    private $actions, $register;
+    /** @var InstanceAction[] $actions */
+    private array $actions;
+    private bool $register;
 
-    /** @internal */
-    public function build(ContainerInterface $container)
+    /** @inheritdoc */
+    public function build(Container $container): mixed
     {
         $return = $this->factoryMethod($container);
         if (!is_object($return)) {
             return $return;
         }
         if (!empty($this->actions)) {
-            /** @var InstanceAction $action */
             foreach ($this->actions as $action) {
                 $return = $action($return, $container);
             }
@@ -48,40 +39,30 @@ trait DefinitionTrait
         return $return;
     }
 
-    /** @internal */
+    /** @inheritdoc */
     public function isRegistered(): bool
     {
         return $this->register;
     }
 
-    /**
-     * Adds a method to call after object instantiation.
-     *
-     * @param string $name       Method name to call.
-     * @param array  $parameters Parameters to pass to the method. To use an
-     *      entry defined in the container, use `Container::entry()`.
-     *
-     * @return $this Fluent interface, allowing multiple calls to be chained.
-     */
-    public function method(string $name, array $parameters = []): Definition
+    /** @inheritdoc */
+    public function method(string $name, array $parameters = []): static
     {
         $this->actions[] = new CallMethod($name, $parameters);
         return $this;
     }
 
-    /**
-     * Sets a property after object instantiation.
-     *
-     * @param string $name  Property name to set.
-     * @param mixed  $value Value to set.
-     *
-     * @return $this Fluent interface, allowing multiple calls to be chained.
-     */
-    public function property(string $name, $value = null): Definition
+    /** @inheritdoc */
+    public function property(string $name, mixed $value = null): static
     {
         $this->actions[] = new SetProperty($name, $value);
         return $this;
     }
 
-    abstract protected function factoryMethod(ContainerInterface $container);
+    /**
+     * Resolve entry to a returnable value.
+     *
+     * @internal
+     */
+    abstract protected function factoryMethod(Container $container): mixed;
 }

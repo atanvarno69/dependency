@@ -2,35 +2,29 @@
 /**
  * @package   Atanvarno\Dependency
  * @author    atanvarno69 <https://github.com/atanvarno69>
- * @copyright 2017 atanvarno.com
+ * @copyright 2021 atanvarno.com
  * @license   https://opensource.org/licenses/MIT The MIT License
  */
+
+declare(strict_types = 1);
 
 namespace Atanvarno\Dependency\Definition;
 
 /**
- * Atanvarno\Dependency\Definition\Entry
+ * Represents a container entry in definitions.
  *
- * @internal Represents a container entry in definitions. Returned by the
- * helper function `entry()`.
+ * Returned by the helper function `entry()`.
  */
 class Entry
 {
-    /** @var string $id Identifier of the proxy entry. */
-    private $id;
-    
     /**
-     * Builds an `Entry` instance.
-     *
-     * @param string $id Identifier of the proxy entry.
+     * Build an `Entry` instance from a string identifier.
      */
-    public function __construct(string $id)
-    {
-        $this->id = $id;
-    }
+    public function __construct(private string $id)
+    {}
     
     /**
-     * @return string Identifier of the proxy entry.
+     * Get the entry identifier.
      */
     public function __toString(): string
     {
