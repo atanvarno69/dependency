@@ -28,7 +28,7 @@ class ContainerTest extends TestCase
     /** @var Container $container */
     private $container;
     
-    public function setup():void
+    public function setup(): void
     {
         $this->container = new Container();
     }

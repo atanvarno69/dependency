@@ -113,7 +113,7 @@ class DefinitionMock implements Definition
         $this->callable = $callable;
     }
 
-    protected function factoryMethod(ContainerInterface $container)
+    protected function factoryMethod(ContainerInterface $container): mixed
     {
         return call_user_func($this->callable, []);
     }
