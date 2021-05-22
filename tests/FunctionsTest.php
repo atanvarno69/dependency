@@ -2,16 +2,15 @@
 /**
  * @package   Atanvarno\Dependency
  * @author    atanvarno69 <https://github.com/atanvarno69>
- * @copyright 2017 atanvarno.com
+ * @copyright 2021 atanvarno.com
  * @license   https://opensource.org/licenses/MIT The MIT License
  */
 
+declare(strict_types = 1);
+
 namespace Atanvarno\Dependency\Test;
 
-/** PHPUnit use block. */
 use PHPUnit\Framework\TestCase;
-
-/** Package use block. */
 use function Atanvarno\Dependency\{
     entry, factory, object, value
 };

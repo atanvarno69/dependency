@@ -2,19 +2,16 @@
 /**
  * @package   Atanvarno\Dependency
  * @author    atanvarno69 <https://github.com/atanvarno69>
- * @copyright 2017 atanvarno.com
+ * @copyright 2021 atanvarno.com
  * @license   https://opensource.org/licenses/MIT The MIT License
  */
 
+declare(strict_types = 1);
+
 namespace Atanvarno\Dependency\Test\Definition;
 
-/** PSR-11 use block. */
 use Psr\Container\ContainerInterface;
-
-/** PHPUnit use block. */
 use PHPUnit\Framework\TestCase;
-
-/** Package use block. */
 use Atanvarno\Dependency\Definition\{
     Entry, InstanceAction, SetProperty
 };
@@ -24,7 +21,7 @@ class SetPropertyTest extends TestCase
 {
     private $container;
 
-    public function setUp()
+    public function setUp(): void
     {
         $this->container = $this->createMock(ContainerInterface::class);
     }

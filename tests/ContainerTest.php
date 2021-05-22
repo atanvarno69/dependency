@@ -2,25 +2,18 @@
 /**
  * @package   Atanvarno\Dependency
  * @author    atanvarno69 <https://github.com/atanvarno69>
- * @copyright 2017 atanvarno.com
+ * @copyright 2021 atanvarno.com
  * @license   https://opensource.org/licenses/MIT The MIT License
  */
 
+declare(strict_types = 1);
+
 namespace Atanvarno\Dependency\Test;
 
-/** SPL use block. */
 use ArrayAccess, Exception, TypeError;
-
-/** PSR-11 use block. */
 use Psr\Container\{ContainerInterface, NotFoundExceptionInterface};
-
-/** PSR-16 use block. */
 use Psr\SimpleCache\{CacheException, CacheInterface};
-
-/** PHPUnit use block. */
 use PHPUnit\Framework\TestCase;
-
-/** Package use block. */
 use Atanvarno\Dependency\{Container, Definition};
 use Atanvarno\Dependency\Definition\{Entry, ValueDefinition};
 use Atanvarno\Dependency\Exception\{
@@ -35,7 +28,7 @@ class ContainerTest extends TestCase
     /** @var Container $container */
     private $container;
     
-    public function setup()
+    public function setup():void
     {
         $this->container = new Container();
     }
